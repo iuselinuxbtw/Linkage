@@ -1,7 +1,4 @@
-use reqwest::Error as RequestError;
-
 use std::fmt;
-use std::ptr::write_bytes;
 
 #[derive(Debug)]
 pub enum HttpError{
