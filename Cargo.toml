@@ -1,4 +1,6 @@
 [workspace]
 members = [
     'linkage_firewall',
+    'linkage_cli',
+    'linkage_leaks',
 ]
