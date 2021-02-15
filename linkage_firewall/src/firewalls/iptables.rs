@@ -11,9 +11,9 @@ use std::net::IpAddr;
 const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
 
 /// Uses `iptables` as a backend for the firewall configuration.
-pub struct IpTablesFirewall<T: Executor, U: Executor> {
-    executor_v4: T,
-    executor_v6: U,
+pub struct IpTablesFirewall<'a, T: Executor, U: Executor> {
+    executor_v4: &'a T,
+    executor_v6: &'a U,
 }
 
 /// The name for the chain that handles `ACCEPT` for the `INPUT` chain.
@@ -21,9 +21,9 @@ const IN_ACCEPT_CHAIN_NAME: &str = "in_accept";
 /// The name for the chain that handles `ACCEPT` for the `OUTPUT` chain.
 const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 
-impl<T: Executor, U: Executor> IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> IpTablesFirewall<'a, T, U> {
     /// Returns a new instance of IpTablesInstance with the supplied executors.
-    pub fn new(executor_v4: T, executor_v6: U) -> IpTablesFirewall<T, U> {
+    pub fn new(executor_v4: &'a T, executor_v6: &'a U) -> IpTablesFirewall<'a, T, U> {
         return IpTablesFirewall {
             executor_v4,
             executor_v6,
@@ -31,17 +31,17 @@ impl<T: Executor, U: Executor> IpTablesFirewall<T, U> {
     }
 }
 
-impl<T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<'a, T, U> {
     fn get_executor_v4(&self) -> &T {
-        &self.executor_v4
+        self.executor_v4
     }
 
     fn get_executor_v6(&self) -> &U {
-        &self.executor_v6
+        self.executor_v6
     }
 }
 
-impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<'a, T, U> {
     fn get_identifier(&self) -> FirewallIdentifier {
         return FirewallIdentifier {
             identifier: IPTABLES_BACKEND_IDENTIFIER,
@@ -193,8 +193,8 @@ mod tests {
         let executor_v4_mock = MockExecutor::new();
         let executor_v6_mock = MockExecutor::new();
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
 
         assert_eq!(FirewallIdentifier {
@@ -207,15 +207,48 @@ mod tests {
         let executor_v4_mock = MockExecutor::new();
         let executor_v6_mock = MockExecutor::new();
             let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
 
         assert!(f.is_available()?);
 
         Ok(())
     }
-    
+
+    #[test]
+    fn test_new() {
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+
+        assert_eq!(executor_v4_mock, executor_v4_mock);
+        assert_eq!(executor_v6_mock, executor_v6_mock);
+        assert_ne!(executor_v4_mock, executor_v6_mock);
+
+        let f = IpTablesFirewall::new(&executor_v4_mock, &executor_v6_mock);
+
+        assert_eq!(f.executor_v4, &executor_v4_mock);
+        assert_eq!(f.executor_v6, &executor_v6_mock);
+    }
+
+    #[test]
+    fn test_get_executor() {
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+
+        assert_eq!(executor_v4_mock, executor_v4_mock);
+        assert_eq!(executor_v6_mock, executor_v6_mock);
+        assert_ne!(executor_v4_mock, executor_v6_mock);
+
+        let f = IpTablesFirewall {
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
+        };
+
+        assert_eq!(f.get_executor_v4(), &executor_v4_mock);
+        assert_eq!(f.get_executor_v6(), &executor_v6_mock);
+    }
+
     #[test]
     fn test_on_pre_connect() {
         let mut executor_v4_mock = MockExecutor::new();
@@ -351,8 +384,8 @@ mod tests {
         );
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_pre_connect(&[
             FirewallException::new("1.1.1.1".parse().unwrap(), 1337, FirewallExceptionProtocol::TCP),
@@ -375,8 +408,8 @@ mod tests {
         );
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_post_connect("tun1").unwrap();
     }
@@ -405,8 +438,8 @@ mod tests {
         expect_execute!(executor_v6_mock, to_string_vec!("-X", "out_accept"));
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_disconnect().unwrap();
     }
