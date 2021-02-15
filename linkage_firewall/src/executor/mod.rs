@@ -1,6 +1,6 @@
 #[cfg(test)]
 use mockall::automock;
-use crate::error::FirewallError;
+use crate::error::FirewallResult;
 
 pub mod iptables;
 
@@ -8,5 +8,5 @@ pub mod iptables;
 #[cfg_attr(test, automock)]
 pub trait Executor {
     /// Executes the firewall command with the supplied arguments.
-    fn execute(&self, args: Vec<String>) -> Result<(), FirewallError>;
+    fn execute(&self, args: Vec<String>) -> FirewallResult<()>;
 }

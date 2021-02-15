@@ -1,7 +1,7 @@
 //! Implementation of the iptables firewall backend
 
 use super::{FirewallBackend, FirewallException};
-use crate::error::FirewallError;
+use crate::error::FirewallResult;
 use crate::executor::Executor;
 use crate::{to_string_vec, executor_execute_for};
 use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier};
@@ -35,7 +35,7 @@ impl FirewallBackend for IpTablesFirewall {
     /// - Create a chain that will be used for new and untracked connections in the `OUTPUT` chain
     /// - Add exceptions for the supplied FirewallExceptions. They can be used for e.g. whitelisting
     /// VPN servers
-    fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> Result<(), FirewallError> {
+    fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> FirewallResult<()> {
         // Default policies
         executor_execute_for!(to_string_vec!("-P", "INPUT", "DROP"), executor_v4, executor_v6);
         executor_execute_for!(to_string_vec!("-P", "OUTPUT", "DROP"), executor_v4, executor_v6);
@@ -110,7 +110,7 @@ impl FirewallBackend for IpTablesFirewall {
 
     /// Applies the following rules:
     /// - Allows outgoing connections from the supplied interface identifier
-    fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> Result<(), FirewallError> {
+    fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> FirewallResult<()> {
         // TODO: Do we need to accept incoming connections on the supplied interface identifier?
         executor_execute_for!(
             to_string_vec!("-A", OUT_ACCEPT_CHAIN_NAME, "-o", interface_identifier, "-j", "ACCEPT"),
@@ -124,7 +124,7 @@ impl FirewallBackend for IpTablesFirewall {
     /// - Sets the default policy of the `INPUT`, `OUTPUT` and `FORWARD` chains to `ACCEPT`
     /// - Flushes all chains
     /// - Deletes the chains that are responsible for `ACCEPT` in the `INPUT` and `OUTPUT` chain
-    fn on_disconnect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U) -> Result<(), FirewallError> {
+    fn on_disconnect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U) -> FirewallResult<()> {
         // TODO: Reload firewall state from before creation
         // Default policies
         executor_execute_for!(to_string_vec!("-P", "INPUT", "ACCEPT"), executor_v4, executor_v6);

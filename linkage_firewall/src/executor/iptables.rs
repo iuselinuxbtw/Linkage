@@ -1,6 +1,6 @@
 use super::Executor;
 use std::process::Command;
-use crate::error::FirewallError;
+use crate::error::{FirewallError, FirewallResult};
 
 /// The base command to use for iptables actions.
 #[derive(Debug, PartialEq)]
@@ -32,7 +32,7 @@ impl IptablesCommandExecutor {
 
 impl Executor for IptablesCommandExecutor {
     /// Executes the `iptables` command with the given arguments.
-    fn execute(&self, args: Vec<String>) -> Result<(), FirewallError> {
+    fn execute(&self, args: Vec<String>) -> FirewallResult<()> {
         // TODO: How to test this?
         let exit_status = Command::new(self.0.get_command())
             .args(args)

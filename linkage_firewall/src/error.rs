@@ -15,3 +15,6 @@ impl From<IoError> for FirewallError {
         FirewallError::IoError(error)
     }
 }
+
+/// A result that contains T for Ok and FirewallError for Err.
+pub(crate) type FirewallResult<T> = Result<T, FirewallError>;
