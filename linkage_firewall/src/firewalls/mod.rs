@@ -39,22 +39,30 @@ pub struct FirewallIdentifier {
     identifier: &'static str,
 }
 
+/// Exposes methods to return the specific executors for firewall management.
+pub trait FirewallExecutors<T: Executor, U: Executor> {
+    /// Returns the executor for v4 operations.
+    fn get_executor_v4(&self) -> &T;
+    /// Returns the executor for v6 operations.
+    fn get_executor_v6(&self) -> &U;
+}
+
 /// Exposes methods that can be called when managing different firewalls.
-pub trait FirewallBackend {
+pub trait FirewallBackend<T: Executor, U: Executor>: FirewallExecutors<T, U> {
     /// Returns an unique identifier for the firewall backend. Used for identification purposes in
     /// the application
-    fn get_identifier() -> FirewallIdentifier;
+    fn get_identifier(&self) -> FirewallIdentifier;
     /// Returns whether the firewall backend is available. Can depend on various factors, e.g. the
     /// operating system or different installed packages.
-    fn is_available() -> FirewallResult<bool>;
+    fn is_available(&self) -> FirewallResult<bool>;
     /// Called before connecting to the VPN server. Blocks all traffic into the internet while still
     /// allowing connections to the supplied exceptions. These include the vpn server.
-    fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> FirewallResult<()>;
+    fn on_pre_connect(&self, exceptions: &[FirewallException]) -> FirewallResult<()>;
     /// Called after connecting to the VPN server. Allows all traffic from and to the supplied
     /// interface identifier.
-    fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> FirewallResult<()>;
+    fn on_post_connect(&self, interface_identifier: &str) -> FirewallResult<()>;
     /// Called when the connection to the VPN server was closed. Resets the firewall.
-    fn on_disconnect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U) -> FirewallResult<()>;
+    fn on_disconnect(&self) -> FirewallResult<()>;
 }
 
 #[cfg(test)]
