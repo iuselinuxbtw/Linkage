@@ -1,12 +1,11 @@
 use std::io::Read;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, };
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use random_string::{Charset, Charsets, GenerationResult, RandomString};
 use reqwest::blocking::Client as HttpClient;
 use reqwest::header as RequestHeaders;
-use reqwest::header::USER_AGENT;
 
 use error::HttpError;
 
@@ -19,14 +18,14 @@ const USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 F
 const REFERER: &str = "http://ipleak.net";
 // If you want to use another site for DNSTesting, you should replace this
 const DNS_SITE: &str = "ipleak.net/dnsdetect/";
-const IPv4_SITE: &str = "https://ipv4.ipleak.net/json/";
-const IPv6_SITE: &str = "https://ipv6.ipleak.net/json/";
+const IPV4_SITE: &str = "https://ipv4.ipleak.net/json/";
+const IPV6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
 
 /// Requests the IP from Mullvad
 // TODO: Implement it for ipv4 and ipv6
 pub fn get_ipv4() -> IpAddr {
-    let mut resp = reqwest::blocking::get(IPv4_SITE)
+    let mut resp = reqwest::blocking::get(IPV4_SITE)
         .map_err(|_| HttpError::ResponseError)
         .unwrap();
     let mut body = String::new();
@@ -35,7 +34,7 @@ pub fn get_ipv4() -> IpAddr {
 }
 
 pub fn get_ipv6() -> IpAddr {
-    let mut resp = reqwest::blocking::get(IPv6_SITE)
+    let mut resp = reqwest::blocking::get(IPV6_SITE)
         .map_err(|_| HttpError::ResponseError)
         .unwrap();
     let mut body = String::new();
