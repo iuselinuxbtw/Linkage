@@ -1,3 +1,5 @@
+mod error;
+use error::HttpError;
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::mpsc::channel;
@@ -18,6 +20,9 @@ pub fn get_ip() -> IpAddr{
     body.trim().parse().unwrap()
 }
 
+
+/// Gets all DNS Servers
+// TODO: Make this more efficient
 pub fn dns_test() -> Vec<IpAddr> {
     let data = Arc::new(Mutex::new(Vec::new()));
     let handles = (0..100)
@@ -26,7 +31,7 @@ pub fn dns_test() -> Vec<IpAddr> {
             let data = Arc::clone(&data);
             thread::spawn(move || {
                 let mut ip = data.lock().unwrap();
-                ip.push(get_dns());
+                ip.push(get_dns().unwrap());
             })
         })
         .collect::<Vec<thread::JoinHandle<_>>>();
@@ -38,10 +43,12 @@ pub fn dns_test() -> Vec<IpAddr> {
     ips.dedup();
     ips
 }
- fn get_dns() -> IpAddr {
+
+/// Gets the DNS server from ipleak.net
+ fn get_dns() -> Result<IpAddr, HttpError> {
      let letters = Charset::from_charsets(Charsets::Letters);
      let prefix = RandomString::generate(40, &letters);
-     let mut client = HttpClient::new();
+     let client = HttpClient::new();
      let mut resp = client
         .get(
         &format!("https://{}.ipleak.net/dnsdetect/", prefix.to_string()))
@@ -49,10 +56,11 @@ pub fn dns_test() -> Vec<IpAddr> {
         .header(RequestHeaders::USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0")
         .header(RequestHeaders::REFERER, "http://ipleak.net/")
         .send()
+         .map_err(|_|HttpError::ResponseError)
         .unwrap();
      let mut body = String::new();
-     resp.read_to_string(&mut body).unwrap();
-     body.trim().parse().unwrap()
+     resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
+     Ok(body.trim().parse().unwrap())
 }
 
 

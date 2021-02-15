@@ -10,3 +10,4 @@ edition = "2018"
 clap = "2.33.3"
 ovpnfile = "0.1.2"
 linkage_leaks = { path = "../linkage_leaks" }
+libc = "0.2.86"
