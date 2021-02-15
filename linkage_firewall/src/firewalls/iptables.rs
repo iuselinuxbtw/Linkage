@@ -99,8 +99,16 @@ impl FirewallBackend for IpTablesFirewall {
         Ok(())
     }
 
+    /// Applies the following rules:
+    /// - Allows outgoing connections from the supplied interface identifier
     fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> Result<(), FirewallError> {
-        unimplemented!()
+        // TODO: Do we need to accept incoming connections on the supplied interface identifier?
+        executor_execute_for!(
+            to_string_vec!("-A", OUT_ACCEPT_CHAIN_NAME, "-o", interface_identifier, "-j", "ACCEPT"),
+            executor_v4, executor_v6
+        );
+
+        Ok(())
     }
 
     /// Applies the following rules:
@@ -321,6 +329,24 @@ mod tests {
             FirewallException::new("127.0.0.1".parse().unwrap(), 4200, FirewallExceptionProtocol::UDP),
             FirewallException::new("2001:0db8:85a3:0000:0000:8a2e:0370:7334".parse().unwrap(), 2020, FirewallExceptionProtocol::UDP),
         ]).unwrap();
+    }
+
+    #[test]
+    fn test_on_post_connect() {
+        let mut executor_v4_mock = MockExecutor::new();
+        let mut executor_v6_mock = MockExecutor::new();
+
+        // Allow outgoing connections on the supplied interfaces
+        executor_v4_mock.expect_execute()
+            .times(1)
+            .with(eq(to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")))
+            .returning(|_| Ok(()));
+        executor_v6_mock.expect_execute()
+            .times(1)
+            .with(eq(to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")))
+            .returning(|_| Ok(()));
+
+        IpTablesFirewall::on_post_connect(&executor_v4_mock, &executor_v6_mock, "tun1").unwrap();
     }
 
     #[test]
