@@ -4,22 +4,35 @@ use super::{FirewallBackend, FirewallException};
 use crate::error::FirewallResult;
 use crate::executor::Executor;
 use crate::{to_string_vec, executor_execute_for};
-use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier};
+use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier, FirewallExecutors};
 use std::net::IpAddr;
 
 /// Identifies the iptables backend uniquely.
 const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
 
 /// Uses `iptables` as a backend for the firewall configuration.
-pub struct IpTablesFirewall {}
+pub struct IpTablesFirewall<T: Executor, U: Executor> {
+    executor_v4: T,
+    executor_v6: U,
+}
 
 /// The name for the chain that handles `ACCEPT` for the `INPUT` chain.
 const IN_ACCEPT_CHAIN_NAME: &str = "in_accept";
 /// The name for the chain that handles `ACCEPT` for the `OUTPUT` chain.
 const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 
-impl FirewallBackend for IpTablesFirewall {
-    fn get_identifier() -> FirewallIdentifier {
+impl<T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<T, U> {
+    fn get_executor_v4(&self) -> &T {
+        &self.executor_v4
+    }
+
+    fn get_executor_v6(&self) -> &U {
+        &self.executor_v6
+    }
+}
+
+impl<T: Executor, U: Executor> FirewallBackend<T, U> for IpTablesFirewall<T, U> {
+    fn get_identifier(&self) -> FirewallIdentifier {
         return FirewallIdentifier {
             identifier: IPTABLES_BACKEND_IDENTIFIER,
         }
@@ -27,7 +40,7 @@ impl FirewallBackend for IpTablesFirewall {
 
     /// The IpTablesFirewall backend is available if the operating system is Linux and an executable
     /// with the name `iptables` is found.
-    fn is_available() -> FirewallResult<bool> {
+    fn is_available(&self) -> FirewallResult<bool> {
         // TODO: Implement
         return Ok(true)
     }
@@ -42,7 +55,10 @@ impl FirewallBackend for IpTablesFirewall {
     /// - Create a chain that will be used for new and untracked connections in the `OUTPUT` chain
     /// - Add exceptions for the supplied FirewallExceptions. They can be used for e.g. whitelisting
     /// VPN servers
-    fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> FirewallResult<()> {
+    fn on_pre_connect(&self, exceptions: &[FirewallException]) -> FirewallResult<()> {
+        let executor_v4 = self.get_executor_v4();
+        let executor_v6 = self.get_executor_v6();
+
         // Default policies
         executor_execute_for!(to_string_vec!("-P", "INPUT", "DROP"), executor_v4, executor_v6);
         executor_execute_for!(to_string_vec!("-P", "OUTPUT", "DROP"), executor_v4, executor_v6);
@@ -117,7 +133,10 @@ impl FirewallBackend for IpTablesFirewall {
 
     /// Applies the following rules:
     /// - Allows outgoing connections from the supplied interface identifier
-    fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> FirewallResult<()> {
+    fn on_post_connect(&self, interface_identifier: &str) -> FirewallResult<()> {
+        let executor_v4 = self.get_executor_v4();
+        let executor_v6 = self.get_executor_v6();
+
         // TODO: Do we need to accept incoming connections on the supplied interface identifier?
         executor_execute_for!(
             to_string_vec!("-A", OUT_ACCEPT_CHAIN_NAME, "-o", interface_identifier, "-j", "ACCEPT"),
@@ -131,7 +150,10 @@ impl FirewallBackend for IpTablesFirewall {
     /// - Sets the default policy of the `INPUT`, `OUTPUT` and `FORWARD` chains to `ACCEPT`
     /// - Flushes all chains
     /// - Deletes the chains that are responsible for `ACCEPT` in the `INPUT` and `OUTPUT` chain
-    fn on_disconnect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U) -> FirewallResult<()> {
+    fn on_disconnect(&self) -> FirewallResult<()> {
+        let executor_v4 = self.get_executor_v4();
+        let executor_v6 = self.get_executor_v6();
+
         // TODO: Reload firewall state from before creation
         // Default policies
         executor_execute_for!(to_string_vec!("-P", "INPUT", "ACCEPT"), executor_v4, executor_v6);
@@ -158,14 +180,28 @@ mod tests {
 
     #[test]
     fn test_get_identifier() {
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+        let f = IpTablesFirewall {
+            executor_v4: executor_v4_mock,
+            executor_v6: executor_v6_mock,
+        };
+
         assert_eq!(FirewallIdentifier {
             identifier: "iptables"
-        }, IpTablesFirewall::get_identifier());
+        }, f.get_identifier());
     }
 
     #[test]
     fn test_is_available() -> FirewallResult<()> {
-        assert!(IpTablesFirewall::is_available()?);
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+            let f = IpTablesFirewall {
+            executor_v4: executor_v4_mock,
+            executor_v6: executor_v6_mock,
+        };
+
+        assert!(f.is_available()?);
 
         Ok(())
     }
@@ -304,7 +340,11 @@ mod tests {
             )
         );
 
-        IpTablesFirewall::on_pre_connect(&executor_v4_mock, &executor_v6_mock, &[
+        let f = IpTablesFirewall {
+            executor_v4: executor_v4_mock,
+            executor_v6: executor_v6_mock,
+        };
+        f.on_pre_connect(&[
             FirewallException::new("1.1.1.1".parse().unwrap(), 1337, FirewallExceptionProtocol::TCP),
             FirewallException::new("127.0.0.1".parse().unwrap(), 4200, FirewallExceptionProtocol::UDP),
             FirewallException::new("2001:0db8:85a3:0000:0000:8a2e:0370:7334".parse().unwrap(), 2020, FirewallExceptionProtocol::UDP),
@@ -324,7 +364,11 @@ mod tests {
             executor_v6_mock, to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
         );
 
-        IpTablesFirewall::on_post_connect(&executor_v4_mock, &executor_v6_mock, "tun1").unwrap();
+        let f = IpTablesFirewall {
+            executor_v4: executor_v4_mock,
+            executor_v6: executor_v6_mock,
+        };
+        f.on_post_connect("tun1").unwrap();
     }
 
     #[test]
@@ -350,6 +394,10 @@ mod tests {
         expect_execute!(executor_v4_mock, to_string_vec!("-X", "out_accept"));
         expect_execute!(executor_v6_mock, to_string_vec!("-X", "out_accept"));
 
-        IpTablesFirewall::on_disconnect(&executor_v4_mock, &executor_v6_mock).unwrap();
+        let f = IpTablesFirewall {
+            executor_v4: executor_v4_mock,
+            executor_v6: executor_v6_mock,
+        };
+        f.on_disconnect().unwrap();
     }
 }
