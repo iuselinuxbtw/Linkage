@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 clap = "2.33.3"
 ovpnfile = "0.1.2"
+linkage_leaks = { path = "../linkage_leaks" }

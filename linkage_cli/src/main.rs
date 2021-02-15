@@ -1,5 +1,7 @@
 use clap::{Arg, App};
 use ovpnfile::{self, ConfigDirective};
+use linkage_leaks;
+use linkage_leaks::dns_test;
 
 fn main() {
     let matches = App::new("Linkage")
@@ -16,7 +18,7 @@ fn main() {
     // TODO: Error Handling
     let configfile = matches.value_of("config").unwrap();
     println!("The config file is: {}", configfile);
-    let mut file = std::fs::File::open(configfile).unwrap();
+    let file = std::fs::File::open(configfile).unwrap();
     let parsed_file = ovpnfile::parse(file).unwrap();
     let mut remotes:Vec<String> = Vec::new();
     for d in parsed_file.directives() {
@@ -26,6 +28,7 @@ fn main() {
         }
     }
     println!("{:?}", remotes);
-
-
+    let ip = linkage_leaks::get_ip();
+    let dns_servers = dns_test();
+    println!("{:?}, {}",dns_servers, dns_servers.len());
 }
