@@ -1,7 +1,7 @@
 use clap::{Arg, App};
 use ovpnfile::{self, ConfigDirective};
 use linkage_leaks;
-use linkage_leaks::dns_test;
+use linkage_leaks::{dns_test, get_ipv4, get_ipv6};
 use libc;
 use std::process::Command;
 
@@ -13,6 +13,7 @@ fn main() {
         .about("A VPN Manager")
         // Creates the main Argument which should be the openvpn config file
         .arg(Arg::with_name("config")
+            .required(true)
             .short("c")
             .long("config")
             .value_name("FILE"))
@@ -30,18 +31,19 @@ fn main() {
             _ => (),
         }
     }
-
+/*
     // TODO: Check if Windows or Linux
     let output = Command::new("openvpn")
         .arg(configfile)
         .spawn().unwrap().wait();
-
+*/
 
     rootcheck();
 
 
     println!("{:?}", remotes);
-    let _ip = linkage_leaks::get_ip();
+    let ipv4 = get_ipv4();
+    let ipv6 = get_ipv6();
     let dns_servers = dns_test();
     println!("{:?}, {}",dns_servers, dns_servers.len());
 

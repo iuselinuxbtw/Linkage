@@ -13,19 +13,31 @@ mod error;
 // Vars for the DNSTest
 
 // Tor User Agent, you can also use any User Agent you like but for anonymity this is probably the best one
-static USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
-static REFERER: &str = "http://ipleak.net";
+const  USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
+const REFERER: &str = "http://ipleak.net";
 // If you want to use another site for DNSTesting, you should replace this
-static SITE: &str = "ipleak.net/dnsdetect/";
-
+const  DNS_SITE: &str = "ipleak.net/dnsdetect/";
+const IPv4_SITE: &str = "https://ipv4.ipleak.net/json/";
+const  IPv6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
 
 /// Requests the IP from Mullvad
 // TODO: Implement it for ipv4 and ipv6
-pub fn get_ip() -> IpAddr {
-    let mut resp = reqwest::blocking::get("https://am.i.mullvad.net/ip").unwrap();
+pub fn get_ipv4() -> IpAddr {
+    let mut resp = reqwest::blocking::get(IPv4_SITE)
+        .map_err(|_| HttpError::ResponseError)
+        .unwrap();
     let mut body = String::new();
-    resp.read_to_string(&mut body).unwrap();
+    resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
+    body.trim().parse().unwrap()
+}
+
+pub fn get_ipv6() -> IpAddr {
+    let mut resp = reqwest::blocking::get(IPv6_SITE)
+        .map_err(|_| HttpError::ResponseError)
+        .unwrap();
+    let mut body = String::new();
+    resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
     body.trim().parse().unwrap()
 }
 
@@ -61,7 +73,7 @@ fn get_dns() -> Result<IpAddr, HttpError> {
     let client = HttpClient::new();
     let mut resp = client
         .get(
-            &format!("https://{}{}", prefix, SITE))
+            &format!("https://{}{}", prefix, DNS_SITE))
         .header(RequestHeaders::ORIGIN, REFERER)
         .header(RequestHeaders::USER_AGENT, USERAGENT)
         .header(RequestHeaders::REFERER, REFERER)
