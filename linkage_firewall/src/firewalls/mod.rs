@@ -5,12 +5,45 @@ pub mod iptables;
 use crate::error::FirewallResult;
 use std::net::IpAddr;
 use crate::executor::Executor;
+use std::fmt;
+use std::error;
+use std::str::FromStr;
 
 /// A protocol for firewall exceptions.
 #[derive(Debug, PartialEq)]
 pub enum FirewallExceptionProtocol {
     TCP,
     UDP,
+}
+
+/// Occurs when the supplied protocol cannot be parsed using FromStr in FirewallExceptionProtocol.
+#[derive(Debug, PartialEq)]
+pub struct FirewallExceptionProtocolError;
+
+impl fmt::Display for FirewallExceptionProtocolError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "The protocol is invalid")
+    }
+}
+
+impl error::Error for FirewallExceptionProtocolError {}
+
+impl FromStr for FirewallExceptionProtocol {
+    type Err = FirewallExceptionProtocolError;
+
+    /// Converts the supplied string into FirewallExceptionProtocol.
+    /// # Values
+    /// Below is a list of values that can be converted. If they can't be converted, they return a
+    /// FirewallExceptionProtocolError.
+    /// - UDP: `udp` | `UDP`
+    /// - TCP: `tcp` | `TCP`
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "udp" | "UDP" => Ok(Self::UDP),
+            "tcp" | "TCP" => Ok(Self::TCP),
+            _ => Err(FirewallExceptionProtocolError),
+        }
+    }
 }
 
 /// When activating a firewall, the connections to these exceptions will be allowed.
@@ -48,7 +81,7 @@ pub trait FirewallExecutors<T: Executor, U: Executor> {
 }
 
 /// Exposes methods that can be called when managing different firewalls.
-pub trait FirewallBackend<T: Executor, U: Executor>: FirewallExecutors<T, U> {
+pub trait FirewallBackend {
     /// Returns an unique identifier for the firewall backend. Used for identification purposes in
     /// the application
     fn get_identifier(&self) -> FirewallIdentifier;
@@ -77,5 +110,26 @@ mod tests {
             port: 1337,
             protocol: FirewallExceptionProtocol::TCP,
         }, FirewallException::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1337, FirewallExceptionProtocol::TCP));
+    }
+
+    #[test]
+    fn test_firewall_exception_protocol_error_format() {
+        assert_eq!("The protocol is invalid", format!("{}", FirewallExceptionProtocolError))
+    }
+
+    #[test]
+    fn test_firewall_exception_protocol_error_from_str() {
+        assert_eq!(FirewallExceptionProtocol::UDP, FirewallExceptionProtocol::from_str("udp").unwrap());
+        assert_eq!(FirewallExceptionProtocol::UDP, FirewallExceptionProtocol::from_str("UDP").unwrap());
+        assert_eq!(FirewallExceptionProtocol::TCP, FirewallExceptionProtocol::from_str("tcp").unwrap());
+        assert_eq!(FirewallExceptionProtocol::TCP, FirewallExceptionProtocol::from_str("TCP").unwrap());
+
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("Udp").err().unwrap());
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("uDp").err().unwrap());
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("udP").err().unwrap());
+
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("Tcp").err().unwrap());
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("tCp").err().unwrap());
+        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("tcP").err().unwrap());
     }
 }
