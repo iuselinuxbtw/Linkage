@@ -2,10 +2,12 @@ use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
 use random_string::{Charset, Charsets, GenerationResult, RandomString};
-use reqwest::header as RequestHeaders;
 use reqwest::blocking::Client as HttpClient;
+use reqwest::header as RequestHeaders;
 use reqwest::header::USER_AGENT;
+
 use error::HttpError;
 
 mod error;
@@ -13,12 +15,12 @@ mod error;
 // Vars for the DNSTest
 
 // Tor User Agent, you can also use any User Agent you like but for anonymity this is probably the best one
-const  USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
+const USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
 const REFERER: &str = "http://ipleak.net";
 // If you want to use another site for DNSTesting, you should replace this
-const  DNS_SITE: &str = "ipleak.net/dnsdetect/";
+const DNS_SITE: &str = "ipleak.net/dnsdetect/";
 const IPv4_SITE: &str = "https://ipv4.ipleak.net/json/";
-const  IPv6_SITE: &str = "https://ipv6.ipleak.net/json/";
+const IPv6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
 
 /// Requests the IP from Mullvad

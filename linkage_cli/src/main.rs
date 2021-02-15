@@ -7,6 +7,8 @@ use std::process::Command;
 
 
 fn main() {
+
+
     let matches = App::new("Linkage")
         .version("0.0.1")
         .author("BitJerkers not incorporated")
@@ -19,6 +21,8 @@ fn main() {
             .value_name("FILE"))
         .get_matches()
         ;
+
+
     // TODO: Error Handling
     let configfile = matches.value_of("config").unwrap();
     println!("The config file is: {}", configfile);
@@ -31,12 +35,9 @@ fn main() {
             _ => (),
         }
     }
-/*
     // TODO: Check if Windows or Linux
     let output = Command::new("openvpn")
-        .arg(configfile)
-        .spawn().unwrap().wait();
-*/
+        .arg(configfile);
 
     rootcheck();
 
