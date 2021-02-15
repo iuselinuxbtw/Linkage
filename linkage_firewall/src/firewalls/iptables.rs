@@ -154,6 +154,7 @@ mod tests {
     use super::*;
     use crate::executor::MockExecutor;
     use mockall::predicate::*;
+    use crate::expect_execute;
 
     #[test]
     fn test_get_identifier() {
@@ -163,189 +164,145 @@ mod tests {
     }
 
     #[test]
+    fn test_is_available() -> FirewallResult<()> {
+        assert!(IpTablesFirewall::is_available()?);
+
+        Ok(())
+    }
+    
+    #[test]
     fn test_on_pre_connect() {
         let mut executor_v4_mock = MockExecutor::new();
         let mut executor_v6_mock = MockExecutor::new();
 
-        // TODO: Make a macro for the execute method call to remove duplicate code
-
         // Default policies
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "INPUT", "DROP")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "INPUT", "DROP")))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "OUTPUT", "DROP")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "OUTPUT", "DROP")))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "FORWARD", "DROP")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "FORWARD", "DROP")))
-            .returning(|_| Ok(()));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "INPUT", "DROP"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "INPUT", "DROP"));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "OUTPUT", "DROP"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "OUTPUT", "DROP"));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "FORWARD", "DROP"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "FORWARD", "DROP"));
 
         // Related/established traffic should be allowed for INPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         // Drop invalid packets for INPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         // Related/established traffic should be allowed for OUTPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         // Drop invalid packets for OUTPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         // Allow traffic on loopback device for INPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
+        expect_execute!(
+            executor_v4_mock, to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
+        );
 
         // Allow traffic on loopback device for OUTPUT
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
+        expect_execute!(
+            executor_v4_mock, to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
+        );
 
         // New chain for incoming allow and hook of it into INPUT chain
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
-                "-N", "in_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
-                "-N", "in_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!("-N", "in_accept")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-N", "in_accept")
+        );
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "in_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "INPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "in_accept"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
 
         // New chain for outgoing allow and hook of it into OUTPUT chain
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
-                "-N", "out_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
-                "-N", "out_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!("-N", "out_accept")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-N", "out_accept")
+        );
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "out_accept"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "OUTPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "out_accept"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         // Firewall exceptions should get added
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "out_accept", "-d", "1.1.1.1/32", "-p", "tcp", "-m", "tcp", "--dport", "1337",
                 "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
                 "-A", "out_accept", "-d", "127.0.0.1/32", "-p", "udp", "-m", "udp", "--dport",
                 "4200", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!(
+            )
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!(
                 "-A", "out_accept", "-d", "2001:db8:85a3::8a2e:370:7334/128", "-p",
                 "udp", "-m", "udp", "--dport", "2020", "-j", "ACCEPT"
-            )))
-            .returning(|_| Ok(()));
+            )
+        );
 
         IpTablesFirewall::on_pre_connect(&executor_v4_mock, &executor_v6_mock, &[
             FirewallException::new("1.1.1.1".parse().unwrap(), 1337, FirewallExceptionProtocol::TCP),
@@ -360,14 +317,12 @@ mod tests {
         let mut executor_v6_mock = MockExecutor::new();
 
         // Allow outgoing connections on the supplied interfaces
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")))
-            .returning(|_| Ok(()));
+        expect_execute!(
+            executor_v4_mock, to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
+        );
 
         IpTablesFirewall::on_post_connect(&executor_v4_mock, &executor_v6_mock, "tun1").unwrap();
     }
@@ -378,58 +333,22 @@ mod tests {
         let mut executor_v6_mock = MockExecutor::new();
 
         // Default policies
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "INPUT", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "INPUT", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "OUTPUT", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "OUTPUT", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "FORWARD", "ACCEPT")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-P", "FORWARD", "ACCEPT")))
-            .returning(|_| Ok(()));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "INPUT", "ACCEPT"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "INPUT", "ACCEPT"));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "OUTPUT", "ACCEPT"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "OUTPUT", "ACCEPT"));
+        expect_execute!(executor_v4_mock, to_string_vec!("-P", "FORWARD", "ACCEPT"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-P", "FORWARD", "ACCEPT"));
 
         // Flushes rules
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-F")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-F")))
-            .returning(|_| Ok(()));
+        expect_execute!(executor_v4_mock, to_string_vec!("-F"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-F"));
 
         // Deletes the created chains
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-X", "in_accept")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-X", "in_accept")))
-            .returning(|_| Ok(()));
-        executor_v4_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-X", "out_accept")))
-            .returning(|_| Ok(()));
-        executor_v6_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("-X", "out_accept")))
-            .returning(|_| Ok(()));
+        expect_execute!(executor_v4_mock, to_string_vec!("-X", "in_accept"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-X", "in_accept"));
+        expect_execute!(executor_v4_mock, to_string_vec!("-X", "out_accept"));
+        expect_execute!(executor_v6_mock, to_string_vec!("-X", "out_accept"));
 
         IpTablesFirewall::on_disconnect(&executor_v4_mock, &executor_v6_mock).unwrap();
     }

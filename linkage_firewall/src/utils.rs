@@ -31,7 +31,8 @@ macro_rules! executor_execute_for {
 mod tests {
     use crate::executor::{Executor, MockExecutor};
     use mockall::predicate::*;
-    use crate::error::FirewallError;
+    use crate::error::{FirewallError, FirewallResult};
+    use crate::expect_execute;
 
     #[test]
     fn test_to_string_vec() {
@@ -56,26 +57,14 @@ mod tests {
     }
 
     #[test]
-    fn test_executor_execute_for() -> Result<(), FirewallError> {
+    fn test_executor_execute_for() -> FirewallResult<()> {
         let mut e1_mock = MockExecutor::new();
-        e1_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("hello", "world", "420")))
-            .returning(|_| Ok(()));
-        e1_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("test", "abc")))
-            .returning(|_| Ok(()));
+        expect_execute!(e1_mock, to_string_vec!("hello", "world", "420"));
+        expect_execute!(e1_mock, to_string_vec!("test", "abc"));
 
         let mut e2_mock = MockExecutor::new();
-        e2_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("test", "abc")))
-            .returning(|_| Ok(()));
-        e2_mock.expect_execute()
-            .times(1)
-            .with(eq(to_string_vec!("cat")))
-            .returning(|_| Err(FirewallError::IptablesError(None)));
+        expect_execute!(e2_mock, to_string_vec!("test", "abc"));
+        expect_execute!(e2_mock, to_string_vec!("cat"), Err(FirewallError::IptablesError(None)));
 
         executor_execute_for!(to_string_vec!("hello", "world", "420"), e1_mock);
         executor_execute_for!(to_string_vec!("test", "abc"), e1_mock, e2_mock);
