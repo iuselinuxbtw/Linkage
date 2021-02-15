@@ -31,6 +31,12 @@ fn main() {
         }
     }
 
+    // TODO: Check if Windows or Linux
+    let output = Command::new("openvpn")
+        .arg(configfile)
+        .spawn().unwrap().wait();
+
+
     rootcheck();
 
 
