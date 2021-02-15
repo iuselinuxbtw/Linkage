@@ -25,6 +25,13 @@ impl FirewallBackend for IpTablesFirewall {
         }
     }
 
+    /// The IpTablesFirewall backend is available if the operating system is Linux and an executable
+    /// with the name `iptables` is found.
+    fn is_available() -> FirewallResult<bool> {
+        // TODO: Implement
+        return Ok(true)
+    }
+
     /// Applies the following rules:
     /// - Sets the default policy to `DROP` for the chains `INPUT`, `OUTPUT` and `FORWARD`
     /// - For both the `INPUT` and `OUTPUT` chain, it will:

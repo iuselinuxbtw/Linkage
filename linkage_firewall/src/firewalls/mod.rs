@@ -44,6 +44,9 @@ pub trait FirewallBackend {
     /// Returns an unique identifier for the firewall backend. Used for identification purposes in
     /// the application
     fn get_identifier() -> FirewallIdentifier;
+    /// Returns whether the firewall backend is available. Can depend on various factors, e.g. the
+    /// operating system or different installed packages.
+    fn is_available() -> FirewallResult<bool>;
     /// Called before connecting to the VPN server. Blocks all traffic into the internet while still
     /// allowing connections to the supplied exceptions. These include the vpn server.
     fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> FirewallResult<()>;
