@@ -21,6 +21,16 @@ const IN_ACCEPT_CHAIN_NAME: &str = "in_accept";
 /// The name for the chain that handles `ACCEPT` for the `OUTPUT` chain.
 const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 
+impl<T: Executor, U: Executor> IpTablesFirewall<T, U> {
+    /// Returns a new instance of IpTablesInstance with the supplied executors.
+    pub fn new(executor_v4: T, executor_v6: U) -> IpTablesFirewall<T, U> {
+        return IpTablesFirewall {
+            executor_v4,
+            executor_v6,
+        }
+    }
+}
+
 impl<T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<T, U> {
     fn get_executor_v4(&self) -> &T {
         &self.executor_v4
@@ -31,7 +41,7 @@ impl<T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<T, U
     }
 }
 
-impl<T: Executor, U: Executor> FirewallBackend<T, U> for IpTablesFirewall<T, U> {
+impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
     fn get_identifier(&self) -> FirewallIdentifier {
         return FirewallIdentifier {
             identifier: IPTABLES_BACKEND_IDENTIFIER,
