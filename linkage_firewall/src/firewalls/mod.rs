@@ -36,12 +36,12 @@ impl FirewallException {
 pub trait FirewallBackend {
     /// Called before connecting to the VPN server. Blocks all traffic into the internet while still
     /// allowing connections to the supplied exceptions. These include the vpn server.
-    fn on_pre_connect<T: Executor>(executor: &T, exceptions: &[FirewallException]) -> Result<(), FirewallError>;
+    fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> Result<(), FirewallError>;
     /// Called after connecting to the VPN server. Allows all traffic from and to the supplied
     /// interface identifier.
-    fn on_post_connect<T: Executor>(executor: &T, interface_identifier: &str) -> Result<(), FirewallError>;
+    fn on_post_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, interface_identifier: &str) -> Result<(), FirewallError>;
     /// Called when the connection to the VPN server was closed. Resets the firewall.
-    fn on_disconnect<T: Executor>(executor: &T) -> Result<(), FirewallError>;
+    fn on_disconnect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U) -> Result<(), FirewallError>;
 }
 
 #[cfg(test)]

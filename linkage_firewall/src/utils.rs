@@ -15,7 +15,7 @@ macro_rules! to_string_vec {
 }
 
 /// Executes the supplied expression for the supplied identifiers. Required a .execute method that
-/// can accept the expression and returns a Result.
+/// can accept the expression and returns a Result because it adds `?` to the method call.
 #[macro_export]
 macro_rules! executor_execute_for {
     ( $x:expr, $( $e:ident ),+ ) => {
@@ -59,17 +59,21 @@ mod tests {
     fn test_executor_execute_for() -> Result<(), FirewallError> {
         let mut e1_mock = MockExecutor::new();
         e1_mock.expect_execute()
+            .times(1)
             .with(eq(to_string_vec!("hello", "world", "420")))
             .returning(|_| Ok(()));
         e1_mock.expect_execute()
+            .times(1)
             .with(eq(to_string_vec!("test", "abc")))
             .returning(|_| Ok(()));
 
         let mut e2_mock = MockExecutor::new();
         e2_mock.expect_execute()
+            .times(1)
             .with(eq(to_string_vec!("test", "abc")))
             .returning(|_| Ok(()));
         e2_mock.expect_execute()
+            .times(1)
             .with(eq(to_string_vec!("cat")))
             .returning(|_| Err(FirewallError::IptablesError(None)));
 
