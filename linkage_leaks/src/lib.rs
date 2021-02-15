@@ -6,9 +6,10 @@ use std::thread;
 use random_string::{Charset, Charsets, GenerationResult, RandomString};
 use reqwest::blocking::Client as HttpClient;
 use reqwest::header as RequestHeaders;
+use serde::Deserialize;
+use serde_json;
 
 use error::HttpError;
-
 mod error;
 
 // Vars for the DNSTest
@@ -21,15 +22,26 @@ const DNS_SITE: &str = "ipleak.net/dnsdetect/";
 const IPV4_SITE: &str = "https://ipv4.ipleak.net/json/";
 const IPV6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
+#[derive(Deserialize, Debug)]
+struct Infos {
+    country_code:String,
+    region_code:String,
+    continent_code:String,
+    city_name:String,
+    ipv4:String,
+    ipv6:String
+}
 
-/// Requests the IP from Mullvad
-// TODO: Implement it for ipv4 and ipv6
+/// Requests the IP from ipleak.net
+// TODO: merge this and ipv6 into one function and save the data into Infos
 pub fn get_ipv4() -> IpAddr {
     let mut resp = reqwest::blocking::get(IPV4_SITE)
         .map_err(|_| HttpError::ResponseError)
         .unwrap();
     let mut body = String::new();
     resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
+    let response: Infos = serde_json::from_str(&body).unwrap();
+    let mut ipstring= response.ip;
     body.trim().parse().unwrap()
 }
 
@@ -84,13 +96,4 @@ fn get_dns() -> Result<IpAddr, HttpError> {
     let mut body = String::new();
     resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
     Ok(body.trim().parse().unwrap())
-}
-
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
 }

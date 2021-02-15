@@ -10,7 +10,7 @@ use std::error;
 use std::str::FromStr;
 
 /// A protocol for firewall exceptions.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FirewallExceptionProtocol {
     TCP,
     UDP,
