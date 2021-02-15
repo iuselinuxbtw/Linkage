@@ -32,8 +32,18 @@ impl FirewallException {
     }
 }
 
+/// Holds a identifier for a firewall backend that is unique to the specific backend. Used for
+/// identification purposes.
+#[derive(Debug, PartialEq)]
+pub struct FirewallIdentifier {
+    identifier: &'static str,
+}
+
 /// Exposes methods that can be called when managing different firewalls.
 pub trait FirewallBackend {
+    /// Returns an unique identifier for the firewall backend. Used for identification purposes in
+    /// the application
+    fn get_identifier() -> FirewallIdentifier;
     /// Called before connecting to the VPN server. Blocks all traffic into the internet while still
     /// allowing connections to the supplied exceptions. These include the vpn server.
     fn on_pre_connect<T: Executor, U: Executor>(executor_v4: &T, executor_v6: &U, exceptions: &[FirewallException]) -> Result<(), FirewallError>;

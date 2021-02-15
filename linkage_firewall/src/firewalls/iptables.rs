@@ -4,8 +4,11 @@ use super::{FirewallBackend, FirewallException};
 use crate::error::FirewallError;
 use crate::executor::Executor;
 use crate::{to_string_vec, executor_execute_for};
-use crate::firewalls::FirewallExceptionProtocol;
+use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier};
 use std::net::IpAddr;
+
+/// Identifies the iptables backend uniquely.
+const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
 
 /// Uses `iptables` as a backend for the firewall configuration.
 pub struct IpTablesFirewall {}
@@ -16,6 +19,12 @@ const IN_ACCEPT_CHAIN_NAME: &str = "in_accept";
 const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 
 impl FirewallBackend for IpTablesFirewall {
+    fn get_identifier() -> FirewallIdentifier {
+        return FirewallIdentifier {
+            identifier: IPTABLES_BACKEND_IDENTIFIER,
+        }
+    }
+
     /// Applies the following rules:
     /// - Sets the default policy to `DROP` for the chains `INPUT`, `OUTPUT` and `FORWARD`
     /// - For both the `INPUT` and `OUTPUT` chain, it will:
@@ -138,6 +147,13 @@ mod tests {
     use super::*;
     use crate::executor::MockExecutor;
     use mockall::predicate::*;
+
+    #[test]
+    fn test_get_identifier() {
+        assert_eq!(FirewallIdentifier {
+            identifier: "iptables"
+        }, IpTablesFirewall::get_identifier());
+    }
 
     #[test]
     fn test_on_pre_connect() {
