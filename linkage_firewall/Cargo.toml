@@ -10,6 +10,7 @@ license = "AGPL-3.0-only"
 [dependencies]
 lazy_static = "1.4.0"
 thiserror = "1.0.23"
+which = "4.0.2"
 
 [dev-dependencies]
 mockall = "0.9.1"
