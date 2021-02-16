@@ -72,6 +72,20 @@ pub struct FirewallIdentifier {
     identifier: &'static str,
 }
 
+impl PartialEq<&str> for FirewallIdentifier {
+    /// Returns whether the identifier of the firewall backend is equal to a supplied string.
+    fn eq(&self, other: &&str) -> bool {
+        self.identifier == *other
+    }
+}
+
+impl PartialEq<FirewallIdentifier> for &str {
+    /// Returns whether the string is equal to the identifier of a firewall backend.
+    fn eq(&self, other: &FirewallIdentifier) -> bool {
+        return *other == *self
+    }
+}
+
 /// Exposes methods to return the specific executors for firewall management.
 pub trait FirewallExecutors<T: Executor, U: Executor> {
     /// Returns the executor for v4 operations.
@@ -102,6 +116,40 @@ pub trait FirewallBackend {
 mod tests {
     use super::*;
     use std::net::Ipv4Addr;
+
+    #[test]
+    fn test_firewall_identifier_partialeq_pointer_str() {
+        assert!(FirewallIdentifier {
+            identifier: "imagine"
+        } == "imagine");
+        assert_eq!(FirewallIdentifier {
+            identifier: "imagine"
+        }, "imagine");
+
+        assert!(FirewallIdentifier {
+            identifier: "lol"
+        } != "imagine");
+        assert_ne!(FirewallIdentifier {
+            identifier: "lol"
+        }, "imagine");
+    }
+
+    #[test]
+    fn test_pointer_str_partialeq_firewall_identifier() {
+        assert!("imagine" == FirewallIdentifier {
+            identifier: "imagine"
+        });
+        assert_eq!("imagine", FirewallIdentifier {
+            identifier: "imagine"
+        });
+
+        assert!("imagine" != FirewallIdentifier {
+            identifier: "lol"
+        });
+        assert_ne!("imagine", FirewallIdentifier {
+            identifier: "lol"
+        });
+    }
 
     #[test]
     fn test_firewall_exception_new() {

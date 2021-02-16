@@ -8,6 +8,7 @@ license = "AGPL-3.0-only"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 mockall = "0.9.1"
