@@ -1,6 +1,12 @@
-pub mod firewalls;
-pub mod error;
-pub mod executor;
+//! Responsible for handling everything related to the firewall. This e.g. includes its leak-safe
+//! setup and exceptions so the VPN client can connect to the VPN server.
+
+pub use firewalls::{FirewallException, FirewallExceptionProtocol};
+pub use error::FirewallError;
+
+pub(crate) mod firewalls;
+mod error;
+mod executor;
 #[macro_use]
 mod utils;
 #[cfg(test)]
