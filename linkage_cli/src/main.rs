@@ -5,7 +5,7 @@ use libc;
 use ovpnfile::{self, ConfigDirective};
 
 use linkage_firewall::firewalls::{FirewallException, FirewallExceptionProtocol};
-use linkage_leaks::{dns_test, get_ipv4, get_ipv6};
+use linkage_leaks::{dns_test, get_infos};
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::ptr::null;
@@ -65,8 +65,8 @@ fn main() {
 
 
     println!("{:?}", remotes);
-    let ipv4 = get_ipv4();
-    let ipv6 = get_ipv6();
+    let infos = get_infos();
+    println!("{:?}", infos);
     let dns_servers = dns_test();
     println!("{:?}, {}", dns_servers, dns_servers.len());
 }

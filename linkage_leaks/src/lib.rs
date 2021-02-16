@@ -11,6 +11,7 @@ use serde_json;
 
 use error::HttpError;
 mod error;
+mod request;
 
 // Vars for the DNSTest
 
@@ -23,36 +24,36 @@ const IPV4_SITE: &str = "https://ipv4.ipleak.net/json/";
 const IPV6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
 #[derive(Deserialize, Debug)]
-struct Infos {
+pub struct Infos {
     country_code:String,
     region_code:String,
     continent_code:String,
     city_name:String,
-    ipv4:String,
-    ipv6:String
+    ip:String,
+    ipv6:Option<String>
 }
 
-/// Requests the IP from ipleak.net
-// TODO: merge this and ipv6 into one function and save the data into Infos
-pub fn get_ipv4() -> IpAddr {
-    let mut resp = reqwest::blocking::get(IPV4_SITE)
-        .map_err(|_| HttpError::ResponseError)
-        .unwrap();
-    let mut body = String::new();
-    resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
-    let response: Infos = serde_json::from_str(&body).unwrap();
-    let mut ipstring= response.ip;
-    body.trim().parse().unwrap()
+/// Requests infos from a site that returns them in json format, then returns those infos
+pub fn get_infos() -> Infos{
+    let ipv6 = get_body(IPV6_SITE);
+    let ipv4 = get_body(IPV4_SITE);
+    let mut infos: Infos = serde_json::from_str(&ipv4).unwrap();
+    let mut ipv6info:Infos= serde_json::from_str(&ipv6).unwrap();
+    infos.ipv6 = Option::from(ipv6info.ip);
+    infos
 }
 
-pub fn get_ipv6() -> IpAddr {
-    let mut resp = reqwest::blocking::get(IPV6_SITE)
-        .map_err(|_| HttpError::ResponseError)
-        .unwrap();
+
+/// Returns the body of a given URL
+fn get_body(url: &str) -> String {
+    let mut response = reqwest::blocking::get(url)
+        .map_err(|_| HttpError::ResponseError).unwrap();
     let mut body = String::new();
-    resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
-    body.trim().parse().unwrap()
+    // TODO: Error Handling for parsing the body
+    response.read_to_string(&mut body).map_err(|_|HttpError::ParseError).unwrap();
+    body
 }
+
 
 
 /// Gets all DNS Servers
