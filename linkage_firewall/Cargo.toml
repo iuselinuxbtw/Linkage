@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = ["ravi0li <mail@moritz.pw>"]
 edition = "2018"
 license = "AGPL-3.0-only"
+repository = "https://github.com/BitJerkers/Linkage"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
