@@ -53,7 +53,7 @@ impl Executor for IptablesCommandExecutor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;1
+    use super::*;
 
     #[test]
     fn test_iptables_base_command_new() {

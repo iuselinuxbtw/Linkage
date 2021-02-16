@@ -4,12 +4,10 @@ use super::{FirewallBackend, FirewallException};
 use crate::error::FirewallResult;
 use crate::executor::Executor;
 use crate::executor::iptables::{IPTABLES_BINARY_NAME, IP6TABLES_BINARY_NAME};
-use crate::{to_string_vec, executor_execute_for, FirewallError};
+use crate::{to_string_vec, executor_execute_for};
 use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier, FirewallExecutors};
 use crate::utils::{is_linux, does_binary_exist};
 use std::net::IpAddr;
-use std::process::Command;
-use which::{which, Error};
 
 /// Identifies the iptables backend uniquely.
 const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
