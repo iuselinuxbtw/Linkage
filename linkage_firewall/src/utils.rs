@@ -1,5 +1,9 @@
 //! Utilities related to the firewall backends and their implementation.
 
+use std::env;
+use crate::error::FirewallResult;
+use which::{which, Error as WhichError};
+
 /// Turns the supplied arguments into a Vec<String>. Converts the arguments using String::from.
 #[macro_export]
 macro_rules! to_string_vec {
@@ -25,6 +29,32 @@ macro_rules! executor_execute_for {
             )+
         }
     };
+}
+
+/// Returns whether or not the current OS linux. Checks if `std::env::consts::OS` is `linux`.
+pub fn is_linux() -> bool {
+    env::consts::OS == "linux"
+}
+
+/// Returns whether a specified binary exists in the PATH.
+pub fn does_binary_exist(binary: &str) -> FirewallResult<bool> {
+    let result = which(binary);
+    // If no error occurred, the binary was found. If a CannotFindBinaryPath error occurs,
+    // the binary was not found but the action itself was successful. Else, an error
+    // happened while trying to lookup the iptables binary
+    match result.err() {
+        Some(e) => {
+            match e {
+                WhichError::CannotFindBinaryPath => {
+                    Ok(false)
+                },
+                _ => {
+                    Err(e.into())
+                },
+            }
+        },
+        None => Ok(true),
+    }
 }
 
 #[cfg(test)]

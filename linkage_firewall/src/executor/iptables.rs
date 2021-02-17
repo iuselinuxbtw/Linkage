@@ -9,12 +9,17 @@ pub enum IptablesBaseCommand {
     Ip6tables,
 }
 
+/// The binary name for `iptables`.
+pub(crate) const IPTABLES_BINARY_NAME: &str = "iptables";
+/// The binary name for `ip6tables`.
+pub(crate) const IP6TABLES_BINARY_NAME: &str = "ip6tables";
+
 impl IptablesBaseCommand {
     /// Returns the command according to the selected base command.
     pub fn get_command(&self) -> String {
         match self {
-            IptablesBaseCommand::Iptables => "iptables",
-            IptablesBaseCommand::Ip6tables => "ip6tables",
+            IptablesBaseCommand::Iptables => IPTABLES_BINARY_NAME,
+            IptablesBaseCommand::Ip6tables => IP6TABLES_BINARY_NAME,
         }.into()
     }
 }
