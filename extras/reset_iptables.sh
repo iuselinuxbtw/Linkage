@@ -5,4 +5,3 @@ sudo iptables -P OUTPUT ACCEPT
 sudo iptables -P FORWARD ACCEPT
 sudo iptables -F
 sudo iptables -X
-
