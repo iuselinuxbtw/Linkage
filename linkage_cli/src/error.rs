@@ -1,9 +1,9 @@
-use thiserror::Error;
-use std::io;
-use std::net::AddrParseError;
 use linkage_firewall::FirewallError;
 use linkage_firewall::FirewallExceptionProtocolError;
+use std::io;
+use std::net::AddrParseError;
 use std::num::ParseIntError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CliError {
@@ -27,6 +27,9 @@ pub enum CliError {
 
     #[error("the program has to be run as administrator")]
     RootRequired,
+
+    #[error("firewall backend not available")]
+    FirewallBackendNotAvailable,
 }
 
 pub(crate) type CliResult<T> = Result<T, CliError>;
