@@ -6,6 +6,7 @@ use ovpnfile::{self, ConfigDirective};
 
 use linkage_firewall::firewalls::{FirewallException, FirewallExceptionProtocol};
 use linkage_leaks::{dns_test, get_infos};
+use std::net::IpAddr;
 use std::str::FromStr;
 
 fn main() {
@@ -61,10 +62,13 @@ fn main() {
                 FirewallException::new(host1, port1, protocol)
             }
 
-            _ => panic!("Could not get the IP adresses from the config file"),
+            _ => FirewallException::new(
+                IpAddr::from_str("127.0.0.1").unwrap(),
+                1337,
+                FirewallExceptionProtocol::UDP,
+            ),
         };
     }
-
     /*
 
     let output = Command::new("openvpn")

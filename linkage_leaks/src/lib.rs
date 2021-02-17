@@ -1,15 +1,17 @@
 use std::io::Read;
-use std::net::{IpAddr, };
+use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use random_string::{Charset, Charsets, GenerationResult, RandomString};
-use reqwest::blocking::Client as HttpClient;
-use reqwest::header as RequestHeaders;
+use reqwest::Client;
 use serde::Deserialize;
 use serde_json;
+use tokio;
 
 use error::HttpError;
+use tokio::io::AsyncReadExt;
+
 mod error;
 mod request;
 
@@ -25,36 +27,37 @@ const IPV6_SITE: &str = "https://ipv6.ipleak.net/json/";
 
 #[derive(Deserialize, Debug)]
 pub struct Infos {
-    country_code:String,
-    region_code:String,
-    continent_code:String,
-    city_name:String,
-    ip:String,
-    ipv6:Option<String>
+    country_code: String,
+    region_code: String,
+    continent_code: String,
+    city_name: String,
+    ip: String,
+    ipv6: Option<String>,
 }
 
 /// Requests infos from a site that returns them in json format, then returns those infos
-pub fn get_infos() -> Infos{
+pub fn get_infos() -> Infos {
     let ipv6 = get_body(IPV6_SITE);
     let ipv4 = get_body(IPV4_SITE);
     let mut infos: Infos = serde_json::from_str(&ipv4).unwrap();
-    let mut ipv6info:Infos= serde_json::from_str(&ipv6).unwrap();
+    let mut ipv6info: Infos = serde_json::from_str(&ipv6).unwrap();
     infos.ipv6 = Option::from(ipv6info.ip);
     infos
 }
 
-
 /// Returns the body of a given URL
 fn get_body(url: &str) -> String {
     let mut response = reqwest::blocking::get(url)
-        .map_err(|_| HttpError::ResponseError).unwrap();
+        .map_err(|_| HttpError::ResponseError)
+        .unwrap();
     let mut body = String::new();
     // TODO: Error Handling for parsing the body
-    response.read_to_string(&mut body).map_err(|_|HttpError::ParseError).unwrap();
+    response
+        .read_to_string(&mut body)
+        .map_err(|_| HttpError::ParseError)
+        .unwrap();
     body
 }
-
-
 
 /// Gets all DNS Servers
 // TODO: Make this more efficient
@@ -72,7 +75,7 @@ pub fn dns_test() -> Vec<IpAddr> {
         .collect::<Vec<thread::JoinHandle<_>>>();
     for thread in handles {
         thread.join().unwrap();
-    };
+    }
     let mut ips = data.lock().unwrap().to_owned();
     ips.sort();
     ips.dedup();
@@ -80,21 +83,24 @@ pub fn dns_test() -> Vec<IpAddr> {
 }
 
 /// Gets the DNS server from ipleak.net
-fn get_dns() -> Result<IpAddr, HttpError> {
+#[tokio::main]
+async fn get_dns() -> Result<IpAddr, HttpError> {
     let letters = Charset::from_charsets(Charsets::Letters);
     let mut prefix: GenerationResult = RandomString::generate(40, &letters);
     let prefix = format!("{}.", prefix.to_string());
-    let client = HttpClient::new();
-    let mut resp = client
-        .get(
-            &format!("https://{}{}", prefix, DNS_SITE))
-        .header(RequestHeaders::ORIGIN, REFERER)
-        .header(RequestHeaders::USER_AGENT, USERAGENT)
-        .header(RequestHeaders::REFERER, REFERER)
-        .send()
+
+    let mut resp = reqwest::get(&format!("https://{}{}", prefix, DNS_SITE))
+        .await
         .map_err(|_| HttpError::ResponseError)
         .unwrap();
+
+    // Reads the body to a string
     let mut body = String::new();
-    resp.read_to_string(&mut body).map_err(|_| HttpError::ParseError).unwrap();
+    body = resp
+        .text()
+        .await
+        .map_err(|_| HttpError::ParseError)
+        .unwrap();
+
     Ok(body.trim().parse().unwrap())
 }

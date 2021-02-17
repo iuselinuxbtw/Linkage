@@ -6,7 +6,7 @@ pub enum FirewallError {
     IoError(IoError),
     /// The `iptables` command was executed successfully, but it resulted in an error. Holds the
     /// exit status code, if there's any.
-    IptablesError(Option<i32>)
+    IptablesError(Option<i32>),
 }
 
 impl From<IoError> for FirewallError {

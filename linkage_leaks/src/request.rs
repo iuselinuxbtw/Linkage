@@ -1,11 +1,9 @@
+use crate::error::HttpError;
 #[cfg(test)]
 use mockall::automock;
 use std::io::Read;
-use crate::error::HttpError;
 
-pub enum RequestError {
-
-}
+pub enum RequestError {}
 
 pub(crate) type RequestResult<T> = Result<T, RequestError>;
 
@@ -16,7 +14,8 @@ pub trait Requester {
 }
 
 pub struct InternetRequester {}
-
+/*
+TODO: Implement this with tokio
 impl Requester for InternetRequester {
     fn get(&self, address: &str) -> RequestResult<String> {
         let mut response = reqwest::blocking::get(address).map_err(|_|HttpError::ResponseError).unwrap();
@@ -25,3 +24,5 @@ impl Requester for InternetRequester {
         Ok(body)
     }
 }
+
+ */

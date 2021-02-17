@@ -1,6 +1,6 @@
+use crate::error::FirewallResult;
 #[cfg(test)]
 use mockall::automock;
-use crate::error::FirewallResult;
 
 pub mod iptables;
 

@@ -3,10 +3,10 @@
 pub mod iptables;
 
 use crate::error::FirewallResult;
-use std::net::IpAddr;
 use crate::executor::Executor;
-use std::fmt;
 use std::error;
+use std::fmt;
+use std::net::IpAddr;
 use std::str::FromStr;
 
 /// A protocol for firewall exceptions.
@@ -60,8 +60,8 @@ impl FirewallException {
         return FirewallException {
             host,
             port,
-            protocol
-        }
+            protocol,
+        };
     }
 }
 
@@ -105,31 +105,71 @@ mod tests {
 
     #[test]
     fn test_firewall_exception_new() {
-        assert_eq!(FirewallException{
-            host: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-            port: 1337,
-            protocol: FirewallExceptionProtocol::TCP,
-        }, FirewallException::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1337, FirewallExceptionProtocol::TCP));
+        assert_eq!(
+            FirewallException {
+                host: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                port: 1337,
+                protocol: FirewallExceptionProtocol::TCP,
+            },
+            FirewallException::new(
+                IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                1337,
+                FirewallExceptionProtocol::TCP
+            )
+        );
     }
 
     #[test]
     fn test_firewall_exception_protocol_error_format() {
-        assert_eq!("The protocol is invalid", format!("{}", FirewallExceptionProtocolError))
+        assert_eq!(
+            "The protocol is invalid",
+            format!("{}", FirewallExceptionProtocolError)
+        )
     }
 
     #[test]
     fn test_firewall_exception_protocol_error_from_str() {
-        assert_eq!(FirewallExceptionProtocol::UDP, FirewallExceptionProtocol::from_str("udp").unwrap());
-        assert_eq!(FirewallExceptionProtocol::UDP, FirewallExceptionProtocol::from_str("UDP").unwrap());
-        assert_eq!(FirewallExceptionProtocol::TCP, FirewallExceptionProtocol::from_str("tcp").unwrap());
-        assert_eq!(FirewallExceptionProtocol::TCP, FirewallExceptionProtocol::from_str("TCP").unwrap());
+        assert_eq!(
+            FirewallExceptionProtocol::UDP,
+            FirewallExceptionProtocol::from_str("udp").unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocol::UDP,
+            FirewallExceptionProtocol::from_str("UDP").unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocol::TCP,
+            FirewallExceptionProtocol::from_str("tcp").unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocol::TCP,
+            FirewallExceptionProtocol::from_str("TCP").unwrap()
+        );
 
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("Udp").err().unwrap());
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("uDp").err().unwrap());
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("udP").err().unwrap());
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("Udp").err().unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("uDp").err().unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("udP").err().unwrap()
+        );
 
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("Tcp").err().unwrap());
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("tCp").err().unwrap());
-        assert_eq!(FirewallExceptionProtocolError, FirewallExceptionProtocol::from_str("tcP").err().unwrap());
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("Tcp").err().unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("tCp").err().unwrap()
+        );
+        assert_eq!(
+            FirewallExceptionProtocolError,
+            FirewallExceptionProtocol::from_str("tcP").err().unwrap()
+        );
     }
 }

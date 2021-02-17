@@ -5,12 +5,10 @@ macro_rules! expect_execute {
     ( $m:ident, $e:expr ) => {
         expect_execute!($m, $e, Ok(()));
     };
-    ( $m:ident, $e:expr, $returns:expr ) => {
-        {
-            $m.expect_execute()
-                .times(1)
-                .with(eq($e))
-                .returning(|_| $returns);
-        }
-    };
+    ( $m:ident, $e:expr, $returns:expr ) => {{
+        $m.expect_execute()
+            .times(1)
+            .with(eq($e))
+            .returning(|_| $returns);
+    }};
 }
