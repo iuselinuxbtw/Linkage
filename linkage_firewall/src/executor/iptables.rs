@@ -1,6 +1,6 @@
 use super::Executor;
-use crate::error::{FirewallError, FirewallResult};
 use std::process::Command;
+use crate::error::{FirewallError, FirewallResult};
 
 /// The base command to use for iptables actions.
 #[derive(Debug, PartialEq)]
@@ -9,14 +9,18 @@ pub enum IptablesBaseCommand {
     Ip6tables,
 }
 
+/// The binary name for `iptables`.
+pub(crate) const IPTABLES_BINARY_NAME: &str = "iptables";
+/// The binary name for `ip6tables`.
+pub(crate) const IP6TABLES_BINARY_NAME: &str = "ip6tables";
+
 impl IptablesBaseCommand {
     /// Returns the command according to the selected base command.
     pub fn get_command(&self) -> String {
         match self {
-            IptablesBaseCommand::Iptables => "iptables",
-            IptablesBaseCommand::Ip6tables => "ip6tables",
-        }
-        .into()
+            IptablesBaseCommand::Iptables => IPTABLES_BINARY_NAME,
+            IptablesBaseCommand::Ip6tables => IP6TABLES_BINARY_NAME,
+        }.into()
     }
 }
 
@@ -53,25 +57,14 @@ mod tests {
 
     #[test]
     fn test_iptables_base_command_new() {
-        assert_eq!(
-            IptablesCommandExecutor(IptablesBaseCommand::Iptables),
-            IptablesCommandExecutor::new(IptablesBaseCommand::Iptables)
-        );
-        assert_eq!(
-            String::from("ip6tables"),
-            IptablesBaseCommand::Ip6tables.get_command()
-        );
+        assert_eq!(IptablesCommandExecutor(IptablesBaseCommand::Iptables),
+                   IptablesCommandExecutor::new(IptablesBaseCommand::Iptables));
+        assert_eq!(String::from("ip6tables"), IptablesBaseCommand::Ip6tables.get_command());
     }
 
     #[test]
     fn test_iptables_base_command_get_command() {
-        assert_eq!(
-            String::from("iptables"),
-            IptablesBaseCommand::Iptables.get_command()
-        );
-        assert_eq!(
-            String::from("ip6tables"),
-            IptablesBaseCommand::Ip6tables.get_command()
-        );
+        assert_eq!(String::from("iptables"), IptablesBaseCommand::Iptables.get_command());
+        assert_eq!(String::from("ip6tables"), IptablesBaseCommand::Ip6tables.get_command());
     }
 }

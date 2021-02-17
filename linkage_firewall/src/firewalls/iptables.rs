@@ -3,17 +3,19 @@
 use super::{FirewallBackend, FirewallException};
 use crate::error::FirewallResult;
 use crate::executor::Executor;
-use crate::firewalls::{FirewallExceptionProtocol, FirewallExecutors, FirewallIdentifier};
-use crate::{executor_execute_for, to_string_vec};
+use crate::executor::iptables::{IPTABLES_BINARY_NAME, IP6TABLES_BINARY_NAME};
+use crate::{to_string_vec, executor_execute_for};
+use crate::firewalls::{FirewallExceptionProtocol, FirewallIdentifier, FirewallExecutors};
+use crate::utils::{is_linux, does_binary_exist};
 use std::net::IpAddr;
 
 /// Identifies the iptables backend uniquely.
 const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
 
 /// Uses `iptables` as a backend for the firewall configuration.
-pub struct IpTablesFirewall<T: Executor, U: Executor> {
-    executor_v4: T,
-    executor_v6: U,
+pub struct IpTablesFirewall<'a, T: Executor, U: Executor> {
+    executor_v4: &'a T,
+    executor_v6: &'a U,
 }
 
 /// The name for the chain that handles `ACCEPT` for the `INPUT` chain.
@@ -21,38 +23,46 @@ const IN_ACCEPT_CHAIN_NAME: &str = "in_accept";
 /// The name for the chain that handles `ACCEPT` for the `OUTPUT` chain.
 const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 
-impl<T: Executor, U: Executor> IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> IpTablesFirewall<'a, T, U> {
     /// Returns a new instance of IpTablesInstance with the supplied executors.
-    pub fn new(executor_v4: T, executor_v6: U) -> IpTablesFirewall<T, U> {
+    pub fn new(executor_v4: &'a T, executor_v6: &'a U) -> IpTablesFirewall<'a, T, U> {
         return IpTablesFirewall {
             executor_v4,
             executor_v6,
-        };
+        }
     }
 }
 
-impl<T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<'a, T, U> {
     fn get_executor_v4(&self) -> &T {
-        &self.executor_v4
+        self.executor_v4
     }
 
     fn get_executor_v6(&self) -> &U {
-        &self.executor_v6
+        self.executor_v6
     }
 }
 
-impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
+impl<'a, T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<'a, T, U> {
     fn get_identifier(&self) -> FirewallIdentifier {
         return FirewallIdentifier {
             identifier: IPTABLES_BACKEND_IDENTIFIER,
-        };
+        }
     }
 
     /// The IpTablesFirewall backend is available if the operating system is Linux and an executable
     /// with the name `iptables` is found.
     fn is_available(&self) -> FirewallResult<bool> {
-        // TODO: Implement
-        return Ok(true);
+        // iptables is only available if we use linux
+        if is_linux() {
+            // If the two binaries are available, the backend can be used
+            let iptables_exist = does_binary_exist(IPTABLES_BINARY_NAME)?;
+            let ip6tables_exist = does_binary_exist(IP6TABLES_BINARY_NAME)?;
+
+            Ok(iptables_exist && ip6tables_exist)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Applies the following rules:
@@ -70,99 +80,48 @@ impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
         let executor_v6 = self.get_executor_v6();
 
         // Default policies
-        executor_execute_for!(
-            to_string_vec!("-P", "INPUT", "DROP"),
-            executor_v4,
-            executor_v6
-        );
-        executor_execute_for!(
-            to_string_vec!("-P", "OUTPUT", "DROP"),
-            executor_v4,
-            executor_v6
-        );
-        executor_execute_for!(
-            to_string_vec!("-P", "FORWARD", "DROP"),
-            executor_v4,
-            executor_v6
-        );
+        executor_execute_for!(to_string_vec!("-P", "INPUT", "DROP"), executor_v4, executor_v6);
+        executor_execute_for!(to_string_vec!("-P", "OUTPUT", "DROP"), executor_v4, executor_v6);
+        executor_execute_for!(to_string_vec!("-P", "FORWARD", "DROP"), executor_v4, executor_v6);
 
         for chain in ["INPUT", "OUTPUT"].iter() {
             // Related/established traffic should be allowed
-            executor_execute_for!(
-                to_string_vec!(
-                    "-A",
-                    *chain,
-                    "-m",
-                    "state",
-                    "--state",
-                    "RELATED,ESTABLISHED",
-                    "-j",
-                    "ACCEPT"
-                ),
-                executor_v4,
-                executor_v6
-            );
+            executor_execute_for!(to_string_vec!(
+                "-A", *chain, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
+            ), executor_v4, executor_v6);
 
             // Drop invalid packets
-            executor_execute_for!(
-                to_string_vec!("-A", *chain, "-m", "state", "--state", "INVALID", "-j", "DROP"),
-                executor_v4,
-                executor_v6
-            );
+            executor_execute_for!(to_string_vec!(
+                "-A", *chain, "-m", "state", "--state", "INVALID", "-j", "DROP"
+            ), executor_v4, executor_v6);
         }
 
         // Allow traffic on loopback device
         executor_execute_for!(
             to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT"),
-            executor_v4,
-            executor_v6
+            executor_v4, executor_v6
         );
         executor_execute_for!(
             to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT"),
-            executor_v4,
-            executor_v6
+            executor_v4, executor_v6
         );
 
         // Create new chain for incoming allow and hook it up
-        executor_execute_for!(
-            to_string_vec!("-N", IN_ACCEPT_CHAIN_NAME),
-            executor_v4,
-            executor_v6
-        );
+        executor_execute_for!(to_string_vec!("-N", IN_ACCEPT_CHAIN_NAME), executor_v4, executor_v6);
         executor_execute_for!(
             to_string_vec!(
-                "-A",
-                "INPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                IN_ACCEPT_CHAIN_NAME
+                "-A", "INPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", IN_ACCEPT_CHAIN_NAME
             ),
-            executor_v4,
-            executor_v6
+            executor_v4, executor_v6
         );
 
         // Create new chain for outgoing allow and hook it up
-        executor_execute_for!(
-            to_string_vec!("-N", OUT_ACCEPT_CHAIN_NAME),
-            executor_v4,
-            executor_v6
-        );
+        executor_execute_for!(to_string_vec!("-N", OUT_ACCEPT_CHAIN_NAME), executor_v4, executor_v6);
         executor_execute_for!(
             to_string_vec!(
-                "-A",
-                "OUTPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                OUT_ACCEPT_CHAIN_NAME
+                "-A", "OUTPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", OUT_ACCEPT_CHAIN_NAME
             ),
-            executor_v4,
-            executor_v6
+            executor_v4, executor_v6
         );
 
         // Add exceptions
@@ -174,36 +133,18 @@ impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
             match e.host {
                 IpAddr::V4(ip) => {
                     executor_v4.execute(to_string_vec!(
-                        "-A",
-                        OUT_ACCEPT_CHAIN_NAME,
-                        "-d",
-                        format!("{}/32", ip.to_string()),
-                        "-p",
-                        protocol,
-                        "-m",
-                        protocol,
-                        "--dport",
-                        format!("{}", e.port),
-                        "-j",
+                        "-A", OUT_ACCEPT_CHAIN_NAME, "-d", format!("{}/32", ip.to_string()),
+                        "-p", protocol, "-m", protocol, "--dport", format!("{}", e.port), "-j",
                         "ACCEPT"
                     ))?;
-                }
+                },
                 IpAddr::V6(ip) => {
                     executor_v6.execute(to_string_vec!(
-                        "-A",
-                        OUT_ACCEPT_CHAIN_NAME,
-                        "-d",
-                        format!("{}/128", ip.to_string()),
-                        "-p",
-                        protocol,
-                        "-m",
-                        protocol,
-                        "--dport",
-                        format!("{}", e.port),
-                        "-j",
+                        "-A", OUT_ACCEPT_CHAIN_NAME, "-d", format!("{}/128", ip.to_string()),
+                        "-p", protocol, "-m", protocol, "--dport", format!("{}", e.port), "-j",
                         "ACCEPT"
                     ))?;
-                }
+                },
             }
         }
 
@@ -218,16 +159,8 @@ impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
 
         // TODO: Do we need to accept incoming connections on the supplied interface identifier?
         executor_execute_for!(
-            to_string_vec!(
-                "-A",
-                OUT_ACCEPT_CHAIN_NAME,
-                "-o",
-                interface_identifier,
-                "-j",
-                "ACCEPT"
-            ),
-            executor_v4,
-            executor_v6
+            to_string_vec!("-A", OUT_ACCEPT_CHAIN_NAME, "-o", interface_identifier, "-j", "ACCEPT"),
+            executor_v4, executor_v6
         );
 
         Ok(())
@@ -243,36 +176,16 @@ impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
 
         // TODO: Reload firewall state from before creation
         // Default policies
-        executor_execute_for!(
-            to_string_vec!("-P", "INPUT", "ACCEPT"),
-            executor_v4,
-            executor_v6
-        );
-        executor_execute_for!(
-            to_string_vec!("-P", "OUTPUT", "ACCEPT"),
-            executor_v4,
-            executor_v6
-        );
-        executor_execute_for!(
-            to_string_vec!("-P", "FORWARD", "ACCEPT"),
-            executor_v4,
-            executor_v6
-        );
+        executor_execute_for!(to_string_vec!("-P", "INPUT", "ACCEPT"), executor_v4, executor_v6);
+        executor_execute_for!(to_string_vec!("-P", "OUTPUT", "ACCEPT"), executor_v4, executor_v6);
+        executor_execute_for!(to_string_vec!("-P", "FORWARD", "ACCEPT"), executor_v4, executor_v6);
 
         // Flush rules
         executor_execute_for!(to_string_vec!("-F"), executor_v4, executor_v6);
 
         // Delete the created chains
-        executor_execute_for!(
-            to_string_vec!("-X", IN_ACCEPT_CHAIN_NAME),
-            executor_v4,
-            executor_v6
-        );
-        executor_execute_for!(
-            to_string_vec!("-X", OUT_ACCEPT_CHAIN_NAME),
-            executor_v4,
-            executor_v6
-        );
+        executor_execute_for!(to_string_vec!("-X", IN_ACCEPT_CHAIN_NAME), executor_v4, executor_v6);
+        executor_execute_for!(to_string_vec!("-X", OUT_ACCEPT_CHAIN_NAME), executor_v4, executor_v6);
 
         Ok(())
     }
@@ -282,38 +195,68 @@ impl<T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<T, U> {
 mod tests {
     use super::*;
     use crate::executor::MockExecutor;
-    use crate::expect_execute;
     use mockall::predicate::*;
+    use crate::expect_execute;
 
     #[test]
     fn test_get_identifier() {
         let executor_v4_mock = MockExecutor::new();
         let executor_v6_mock = MockExecutor::new();
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
 
-        assert_eq!(
-            FirewallIdentifier {
-                identifier: "iptables"
-            },
-            f.get_identifier()
-        );
+        assert_eq!(FirewallIdentifier {
+            identifier: "iptables"
+        }, f.get_identifier());
     }
 
     #[test]
     fn test_is_available() -> FirewallResult<()> {
         let executor_v4_mock = MockExecutor::new();
         let executor_v6_mock = MockExecutor::new();
-        let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            let f = IpTablesFirewall {
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
 
         assert!(f.is_available()?);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_new() {
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+
+        assert_eq!(executor_v4_mock, executor_v4_mock);
+        assert_eq!(executor_v6_mock, executor_v6_mock);
+        assert_ne!(executor_v4_mock, executor_v6_mock);
+
+        let f = IpTablesFirewall::new(&executor_v4_mock, &executor_v6_mock);
+
+        assert_eq!(f.executor_v4, &executor_v4_mock);
+        assert_eq!(f.executor_v6, &executor_v6_mock);
+    }
+
+    #[test]
+    fn test_get_executor() {
+        let executor_v4_mock = MockExecutor::new();
+        let executor_v6_mock = MockExecutor::new();
+
+        assert_eq!(executor_v4_mock, executor_v4_mock);
+        assert_eq!(executor_v6_mock, executor_v6_mock);
+        assert_ne!(executor_v4_mock, executor_v6_mock);
+
+        let f = IpTablesFirewall {
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
+        };
+
+        assert_eq!(f.get_executor_v4(), &executor_v4_mock);
+        assert_eq!(f.get_executor_v6(), &executor_v6_mock);
     }
 
     #[test]
@@ -331,235 +274,134 @@ mod tests {
 
         // Related/established traffic should be allowed for INPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "INPUT",
-                "-m",
-                "state",
-                "--state",
-                "RELATED,ESTABLISHED",
-                "-j",
-                "ACCEPT"
+            executor_v4_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
             )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!(
-                "-A",
-                "INPUT",
-                "-m",
-                "state",
-                "--state",
-                "RELATED,ESTABLISHED",
-                "-j",
-                "ACCEPT"
+            executor_v6_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
             )
         );
 
         // Drop invalid packets for INPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!("-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP")
+            executor_v4_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
+            )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!("-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP")
+            executor_v6_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
+            )
         );
 
         // Related/established traffic should be allowed for OUTPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "OUTPUT",
-                "-m",
-                "state",
-                "--state",
-                "RELATED,ESTABLISHED",
-                "-j",
-                "ACCEPT"
+            executor_v4_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
             )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!(
-                "-A",
-                "OUTPUT",
-                "-m",
-                "state",
-                "--state",
-                "RELATED,ESTABLISHED",
-                "-j",
-                "ACCEPT"
+            executor_v6_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
             )
         );
 
         // Drop invalid packets for OUTPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!("-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP")
+            executor_v4_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
+            )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!("-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP")
+            executor_v6_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"
+            )
         );
 
         // Allow traffic on loopback device for INPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
+            executor_v4_mock, to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
+            executor_v6_mock, to_string_vec!("-A", "INPUT", "-i", "lo", "-j", "ACCEPT")
         );
 
         // Allow traffic on loopback device for OUTPUT
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
+            executor_v4_mock, to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
+            executor_v6_mock, to_string_vec!("-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT")
         );
 
         // New chain for incoming allow and hook of it into INPUT chain
-        expect_execute!(executor_v4_mock, to_string_vec!("-N", "in_accept"));
-        expect_execute!(executor_v6_mock, to_string_vec!("-N", "in_accept"));
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "INPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                "in_accept"
+            executor_v4_mock, to_string_vec!("-N", "in_accept")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-N", "in_accept")
+        );
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "in_accept"
             )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!(
-                "-A",
-                "INPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                "in_accept"
+            executor_v6_mock, to_string_vec!(
+                "-A", "INPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "in_accept"
             )
         );
 
+
         // New chain for outgoing allow and hook of it into OUTPUT chain
-        expect_execute!(executor_v4_mock, to_string_vec!("-N", "out_accept"));
-        expect_execute!(executor_v6_mock, to_string_vec!("-N", "out_accept"));
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "OUTPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                "out_accept"
+            executor_v4_mock, to_string_vec!("-N", "out_accept")
+        );
+        expect_execute!(
+            executor_v6_mock, to_string_vec!("-N", "out_accept")
+        );
+        expect_execute!(
+            executor_v4_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "out_accept"
             )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!(
-                "-A",
-                "OUTPUT",
-                "-m",
-                "state",
-                "--state",
-                "NEW,UNTRACKED",
-                "-j",
-                "out_accept"
+            executor_v6_mock, to_string_vec!(
+                "-A", "OUTPUT", "-m", "state", "--state", "NEW,UNTRACKED", "-j", "out_accept"
             )
         );
 
         // Firewall exceptions should get added
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "out_accept",
-                "-d",
-                "1.1.1.1/32",
-                "-p",
-                "tcp",
-                "-m",
-                "tcp",
-                "--dport",
-                "1337",
-                "-j",
-                "ACCEPT"
+            executor_v4_mock, to_string_vec!(
+                "-A", "out_accept", "-d", "1.1.1.1/32", "-p", "tcp", "-m", "tcp", "--dport", "1337",
+                "-j", "ACCEPT"
             )
         );
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!(
-                "-A",
-                "out_accept",
-                "-d",
-                "127.0.0.1/32",
-                "-p",
-                "udp",
-                "-m",
-                "udp",
-                "--dport",
-                "4200",
-                "-j",
-                "ACCEPT"
+            executor_v4_mock, to_string_vec!(
+                "-A", "out_accept", "-d", "127.0.0.1/32", "-p", "udp", "-m", "udp", "--dport",
+                "4200", "-j", "ACCEPT"
             )
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!(
-                "-A",
-                "out_accept",
-                "-d",
-                "2001:db8:85a3::8a2e:370:7334/128",
-                "-p",
-                "udp",
-                "-m",
-                "udp",
-                "--dport",
-                "2020",
-                "-j",
-                "ACCEPT"
+            executor_v6_mock, to_string_vec!(
+                "-A", "out_accept", "-d", "2001:db8:85a3::8a2e:370:7334/128", "-p",
+                "udp", "-m", "udp", "--dport", "2020", "-j", "ACCEPT"
             )
         );
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_pre_connect(&[
-            FirewallException::new(
-                "1.1.1.1".parse().unwrap(),
-                1337,
-                FirewallExceptionProtocol::TCP,
-            ),
-            FirewallException::new(
-                "127.0.0.1".parse().unwrap(),
-                4200,
-                FirewallExceptionProtocol::UDP,
-            ),
-            FirewallException::new(
-                "2001:0db8:85a3:0000:0000:8a2e:0370:7334".parse().unwrap(),
-                2020,
-                FirewallExceptionProtocol::UDP,
-            ),
-        ])
-        .unwrap();
+            FirewallException::new("1.1.1.1".parse().unwrap(), 1337, FirewallExceptionProtocol::TCP),
+            FirewallException::new("127.0.0.1".parse().unwrap(), 4200, FirewallExceptionProtocol::UDP),
+            FirewallException::new("2001:0db8:85a3:0000:0000:8a2e:0370:7334".parse().unwrap(), 2020, FirewallExceptionProtocol::UDP),
+        ]).unwrap();
     }
 
     #[test]
@@ -569,17 +411,15 @@ mod tests {
 
         // Allow outgoing connections on the supplied interfaces
         expect_execute!(
-            executor_v4_mock,
-            to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
+            executor_v4_mock, to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
         );
         expect_execute!(
-            executor_v6_mock,
-            to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
+            executor_v6_mock, to_string_vec!("-A", "out_accept", "-o", "tun1", "-j", "ACCEPT")
         );
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_post_connect("tun1").unwrap();
     }
@@ -608,8 +448,8 @@ mod tests {
         expect_execute!(executor_v6_mock, to_string_vec!("-X", "out_accept"));
 
         let f = IpTablesFirewall {
-            executor_v4: executor_v4_mock,
-            executor_v6: executor_v6_mock,
+            executor_v4: &executor_v4_mock,
+            executor_v6: &executor_v6_mock,
         };
         f.on_disconnect().unwrap();
     }
