@@ -4,7 +4,6 @@ use clap::{App, Arg};
 use libc;
 use ovpnfile::{self, ConfigDirective};
 
-use is_elevated::is_elevated;
 use linkage_firewall::firewalls::{FirewallException, FirewallExceptionProtocol};
 use linkage_leaks::{dns_test, get_infos};
 use std::str::FromStr;
@@ -83,13 +82,15 @@ fn main() {
 fn rootcheck() {
     // For in
     if cfg!(windows) {
+        #[cfg(windows)]
         // TODO: Ask for root permission. Windows support will be introduced in a later release though, so not high priority
-        if !is_elevated() {
+        if !is_elevated::is_elevated() {
             panic!("The Program is not running as an administrator, please run it as admin");
         }
     }
     // We're assuming all other Platforms are Unix-based
     else {
+        #[cfg(unix)]
         unsafe {
             let uid = libc::geteuid();
             if uid != 0 {
