@@ -1,7 +1,7 @@
 //! Responsible for handling everything related to the firewall. This e.g. includes its leak-safe
 //! setup and exceptions so the VPN client can connect to the VPN server.
 
-pub use firewalls::{FirewallException, FirewallExceptionProtocol};
+pub use firewalls::{FirewallException, FirewallExceptionProtocol, FirewallExceptionProtocolError};
 pub use error::FirewallError;
 
 pub(crate) mod firewalls;
