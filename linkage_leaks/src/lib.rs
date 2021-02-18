@@ -85,17 +85,13 @@ async fn get_dns() -> Result<IpAddr, HttpError> {
     let prefix: GenerationResult = RandomString::generate(40, &letters);
     let prefix = format!("{}.", prefix.to_string());
 
-    let resp = reqwest::get(&format!("https://{}{}", prefix, DNS_SITE))
-        .await
+    let resp = reqwest::blocking::get(&format!("https://{}{}", prefix, DNS_SITE))
+        .unwrap()
         .map_err(|_| HttpError::ResponseError)
         .unwrap();
 
     // Reads the body to a string
-    let body = resp
-        .text()
-        .await
-        .map_err(|_| HttpError::ParseError)
-        .unwrap();
+    let body = resp.text().map_err(|_| HttpError::ParseError).unwrap();
 
     Ok(body.trim().parse().unwrap())
 }

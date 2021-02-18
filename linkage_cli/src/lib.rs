@@ -52,7 +52,7 @@ pub fn entry() -> CliResult<()> {
         .stdout(Stdio::piped())
         .spawn()
         .unwrap();
-    // let child = &mut c;
+    let process_id = c.id();
     let mut stdout = c.stdout.unwrap();
     let mut buffer = [0; 2048];
 
@@ -84,13 +84,13 @@ pub fn entry() -> CliResult<()> {
         .collect();
     if matching_dns_addresses.len() > 0 {
         println!("Detected DNS-Leak, disconnecting...");
-        return disconnect(firewall_backend);
+        return disconnect(firewall_backend, Some(process_id));
     }
     let matching_ip_addresses = ip_address_after.ip == ip_address_before.ip
         || ip_address_after.ipv6 == ip_address_before.ipv6;
     if matching_ip_addresses {
         println!("Detected Ip-leak, disconnecting...");
-        return disconnect(firewall_backend);
+        return disconnect(firewall_backend, Some(process_id));
     }
 
     let running = Arc::new(AtomicBool::new(true));
@@ -99,8 +99,7 @@ pub fn entry() -> CliResult<()> {
 
     println!("Waiting...");
     while running.load(Ordering::SeqCst) {}
-    disconnect(firewall_backend)?;
-    //child.kill().unwrap();
+    disconnect(firewall_backend, Some(process_id))?;
 
     Ok(())
 }
@@ -129,10 +128,21 @@ fn root_check() -> CliResult<()> {
     Ok(())
 }
 
-fn disconnect(firewall_backend: &Box<dyn FirewallBackend + Sync>) -> CliResult<()> {
+fn disconnect(
+    firewall_backend: &Box<dyn FirewallBackend + Sync>,
+    process_id: Option<u32>,
+) -> CliResult<()> {
     println!("Exiting...");
     // When disconnecting
     firewall_backend.on_disconnect()?;
+
+    // TODO: Move to own function
+    if let Some(id) = process_id {
+        unsafe {
+            libc::kill(id as i32, libc::SIGTERM);
+        }
+    }
+
     Ok(())
 }
 
