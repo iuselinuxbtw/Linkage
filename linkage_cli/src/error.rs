@@ -25,11 +25,14 @@ pub enum CliError {
     #[error("can't parse int: {0}")]
     ParseInt(#[from] ParseIntError),
 
-    #[error("the program has to be run as administrator")]
+    #[error("the program has to be run as root")]
     RootRequired,
 
     #[error("firewall backend not available")]
     FirewallBackendNotAvailable,
+
+    #[error("couldn't get the interface from openvpn")]
+    InterfaceParseError,
 }
 
 pub(crate) type CliResult<T> = Result<T, CliError>;

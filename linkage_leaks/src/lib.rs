@@ -4,13 +4,11 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use random_string::{Charset, Charsets, GenerationResult, RandomString};
-use reqwest::Client;
 use serde::Deserialize;
 use serde_json;
 use tokio;
 
 use error::HttpError;
-use tokio::io::AsyncReadExt;
 
 mod error;
 mod request;
@@ -18,8 +16,6 @@ mod request;
 // Vars for the DNSTest
 
 // Tor User Agent, you can also use any User Agent you like but for anonymity this is probably the best one
-const USERAGENT: &str = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
-const REFERER: &str = "http://ipleak.net";
 // If you want to use another site for DNSTesting, you should replace this
 const DNS_SITE: &str = "ipleak.net/dnsdetect/";
 const IPV4_SITE: &str = "https://ipv4.ipleak.net/json/";
@@ -40,7 +36,7 @@ pub fn get_infos() -> Infos {
     let ipv6 = get_body(IPV6_SITE);
     let ipv4 = get_body(IPV4_SITE);
     let mut infos: Infos = serde_json::from_str(&ipv4).unwrap();
-    let mut ipv6info: Infos = serde_json::from_str(&ipv6).unwrap();
+    let ipv6info: Infos = serde_json::from_str(&ipv6).unwrap();
     infos.ipv6 = Option::from(ipv6info.ip);
     infos
 }
@@ -86,10 +82,10 @@ pub fn dns_test() -> Vec<IpAddr> {
 #[tokio::main]
 async fn get_dns() -> Result<IpAddr, HttpError> {
     let letters = Charset::from_charsets(Charsets::Letters);
-    let mut prefix: GenerationResult = RandomString::generate(40, &letters);
+    let prefix: GenerationResult = RandomString::generate(40, &letters);
     let prefix = format!("{}.", prefix.to_string());
 
-    let mut resp = reqwest::get(&format!("https://{}{}", prefix, DNS_SITE))
+    let resp = reqwest::get(&format!("https://{}{}", prefix, DNS_SITE))
         .await
         .map_err(|_| HttpError::ResponseError)
         .unwrap();

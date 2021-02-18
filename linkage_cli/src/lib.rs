@@ -14,14 +14,13 @@ use regex::Regex;
 use std::fs::File;
 use std::io::Read;
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 /// The entry point of the cli application.
 pub fn entry() -> CliResult<()> {
     // Administrator privileges are required
-    //root_check()?;
+    root_check()?;
 
     let matches = get_config_matches();
 
@@ -46,18 +45,22 @@ pub fn entry() -> CliResult<()> {
         .stdout(Stdio::piped())
         .spawn()
         .unwrap();
+    let mut child = &mut c;
     let mut stdout = c.stdout.unwrap();
     let mut buffer = [0; 2048];
 
     let regex = Regex::new(r"net_iface_up: set (tun[0-9]+) up").unwrap();
 
     // TODO: Error handling
+    // This loop should probably be limited to about 30 seconds
     let interface_name = loop {
         stdout.read(&mut buffer);
         let i = String::from_utf8_lossy(&buffer);
         let matches = regex.captures(&i);
         if let Some(matches) = matches {
-            let m = matches.get(1).unwrap();
+            let m = matches
+                .get(1)
+                .expect("couldn't get the interface from openvpn");
             break m.as_str().to_string();
         }
     };
@@ -72,7 +75,7 @@ pub fn entry() -> CliResult<()> {
     println!("Waiting...");
     while running.load(Ordering::SeqCst) {}
     println!("Exiting...");
-    //c.kill().unwrap();
+    //child.kill().unwrap();
 
     // When disconnecting
     firewall_backend.on_disconnect()?;
