@@ -1,7 +1,7 @@
 [package]
 name = "linkage_firewall"
 version = "0.0.1"
-authors = ["ravi0li <mail@moritz.pw>"]
+authors = ["ravi0li <mail@moritz.pw>", "Benedikt <benediktb11@tuta.io>"]
 edition = "2018"
 license = "AGPL-3.0-only"
 repository = "https://github.com/BitJerkers/Linkage"

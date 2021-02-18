@@ -27,8 +27,8 @@ pub struct Infos {
     region_code: String,
     continent_code: String,
     city_name: String,
-    ip: String,
-    ipv6: Option<String>,
+    pub ip: String,
+    pub ipv6: Option<String>,
 }
 
 /// Requests infos from a site that returns them in json format, then returns those infos
@@ -59,7 +59,7 @@ fn get_body(url: &str) -> String {
 // TODO: Make this more efficient
 pub fn dns_test() -> Vec<IpAddr> {
     let data = Arc::new(Mutex::new(Vec::new()));
-    let handles = (0..100)
+    let handles = (0..60)
         .into_iter()
         .map(|_| {
             let data = Arc::clone(&data);
@@ -91,8 +91,7 @@ async fn get_dns() -> Result<IpAddr, HttpError> {
         .unwrap();
 
     // Reads the body to a string
-    let mut body = String::new();
-    body = resp
+    let mut body = resp
         .text()
         .await
         .map_err(|_| HttpError::ParseError)

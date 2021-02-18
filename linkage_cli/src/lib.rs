@@ -8,11 +8,14 @@ use is_elevated::is_elevated;
 #[cfg(unix)]
 use libc;
 use linkage_firewall::get_backends;
+use linkage_firewall::FirewallBackend;
 use linkage_firewall::FirewallException;
+use linkage_leaks::{dns_test, get_infos};
 use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
 use regex::Regex;
 use std::fs::File;
 use std::io::Read;
+use std::net::IpAddr;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -23,6 +26,10 @@ pub fn entry() -> CliResult<()> {
     root_check()?;
 
     let matches = get_config_matches();
+
+    // Get the Ip Adresses and DNS Servers before the VPN connection
+    let ip_address_before = get_infos();
+    let dns_addresses_before = dns_test();
 
     // This should not be None
     let config_file_path = matches.value_of("config").unwrap();
@@ -68,17 +75,32 @@ pub fn entry() -> CliResult<()> {
     // After connect
     firewall_backend.on_post_connect(&interface_name);
 
+    // Get the ip addresses after the connection is established.
+    let ip_address_after = get_infos();
+    let dns_addresses_after = dns_test();
+    let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
+        .iter()
+        .filter(|&e| dns_addresses_before.contains(e))
+        .collect();
+    if matching_dns_addresses.len() > 0 {
+        println!("Detected DNS-Leak, disconnecting...");
+        return disconnect(firewall_backend);
+    }
+    let matching_ip_addresses = ip_address_after.ip == ip_address_before.ip
+        || ip_address_after.ipv6 == ip_address_before.ipv6;
+    if matching_ip_addresses {
+        println!("Detected Ip-leak, disconnecting...");
+        return disconnect(firewall_backend);
+    }
+
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     ctrlc::set_handler(move || r.store(false, Ordering::SeqCst)).unwrap();
 
     println!("Waiting...");
     while running.load(Ordering::SeqCst) {}
-    println!("Exiting...");
+    disconnect(firewall_backend);
     //child.kill().unwrap();
-
-    // When disconnecting
-    firewall_backend.on_disconnect()?;
 
     Ok(())
 }
@@ -104,6 +126,13 @@ fn root_check() -> CliResult<()> {
         }
     }
 
+    Ok(())
+}
+
+fn disconnect(firewall_backend: &Box<dyn FirewallBackend + Sync>) -> CliResult<()> {
+    println!("Exiting...");
+    // When disconnecting
+    firewall_backend.on_disconnect()?;
     Ok(())
 }
 
