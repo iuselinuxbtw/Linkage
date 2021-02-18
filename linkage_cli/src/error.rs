@@ -4,6 +4,7 @@ use std::io;
 use std::net::AddrParseError;
 use std::num::ParseIntError;
 use thiserror::Error;
+use linkage_leaks::LeakError;
 
 #[derive(Error, Debug)]
 pub enum CliError {
@@ -33,6 +34,9 @@ pub enum CliError {
 
     #[error("couldn't get the interface from openvpn")]
     InterfaceParseError,
+
+    #[error("leak error: {0}")]
+    LinkageLeakError(#[from] LeakError),
 }
 
 pub(crate) type CliResult<T> = Result<T, CliError>;

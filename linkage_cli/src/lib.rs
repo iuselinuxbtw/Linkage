@@ -10,7 +10,7 @@ use libc;
 use linkage_firewall::get_backends;
 use linkage_firewall::FirewallBackend;
 use linkage_firewall::FirewallException;
-use linkage_leaks::{dns_test, get_infos};
+use linkage_leaks::{dns_test, get_ip_information};
 use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
 use regex::Regex;
 use std::fs::File;
@@ -28,8 +28,9 @@ pub fn entry() -> CliResult<()> {
     let matches = get_config_matches();
 
     // Get the Ip Adresses and DNS Servers before the VPN connection
-    let ip_address_before = get_infos();
-    let dns_addresses_before = dns_test();
+    let ip_address_before = get_ip_information()?;
+    // TODO: Make this configurable
+    let dns_addresses_before = dns_test(100)?;
 
     // This should not be None
     let config_file_path = matches.value_of("config").unwrap();
@@ -76,8 +77,9 @@ pub fn entry() -> CliResult<()> {
     firewall_backend.on_post_connect(&interface_name)?;
 
     // Get the ip addresses after the connection is established.
-    let ip_address_after = get_infos();
-    let dns_addresses_after = dns_test();
+    let ip_address_after = get_ip_information()?;
+    // TODO: Make this configurable
+    let dns_addresses_after = dns_test(100)?;
     let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
         .iter()
         .filter(|&e| dns_addresses_before.contains(e))
