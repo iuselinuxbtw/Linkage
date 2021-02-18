@@ -77,8 +77,10 @@ fn get_dns_leak_test_config(mut amount_of_requests: u32) -> DnsTestConfig {
     // If the amount of requests that should be executed is a multiple of requests_per_thread we can
     // safely use the provided value
     if amount_of_requests % requests_per_thread != 0 {
-        // If the amount is not a multiple of the constant, we have to get the next multiple of the
-        // amount
+        // If the amount is not a multiple of the value, we have to get the next number of the
+        // amount that's dividable by the requests per thread so we can have a clean amount of
+        // threads and as a result of that, we won't get any strange behaviour when using weird
+        // numbers as amount
         amount_of_requests = {
             let mut t: u32 = 0;
             while t < amount_of_requests {
