@@ -47,12 +47,12 @@ pub fn entry() -> CliResult<()> {
 
     firewall_backend.on_pre_connect(&exceptions)?;
 
-    let mut c = Command::new("openvpn")
+    let c = Command::new("openvpn")
         .arg(config_file_path)
         .stdout(Stdio::piped())
         .spawn()
         .unwrap();
-    let mut child = &mut c;
+    // let child = &mut c;
     let mut stdout = c.stdout.unwrap();
     let mut buffer = [0; 2048];
 
@@ -61,7 +61,7 @@ pub fn entry() -> CliResult<()> {
     // TODO: Error handling
     // This loop should probably be limited to about 30 seconds
     let interface_name = loop {
-        stdout.read(&mut buffer);
+        stdout.read(&mut buffer)?;
         let i = String::from_utf8_lossy(&buffer);
         let matches = regex.captures(&i);
         if let Some(matches) = matches {
@@ -73,7 +73,7 @@ pub fn entry() -> CliResult<()> {
     };
 
     // After connect
-    firewall_backend.on_post_connect(&interface_name);
+    firewall_backend.on_post_connect(&interface_name)?;
 
     // Get the ip addresses after the connection is established.
     let ip_address_after = get_infos();
@@ -99,7 +99,7 @@ pub fn entry() -> CliResult<()> {
 
     println!("Waiting...");
     while running.load(Ordering::SeqCst) {}
-    disconnect(firewall_backend);
+    disconnect(firewall_backend)?;
     //child.kill().unwrap();
 
     Ok(())

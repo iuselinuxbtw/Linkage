@@ -11,7 +11,7 @@ use tokio;
 use error::HttpError;
 
 mod error;
-mod request;
+//mod request;
 
 // Vars for the DNSTest
 
@@ -91,7 +91,7 @@ async fn get_dns() -> Result<IpAddr, HttpError> {
         .unwrap();
 
     // Reads the body to a string
-    let mut body = resp
+    let body = resp
         .text()
         .await
         .map_err(|_| HttpError::ParseError)
