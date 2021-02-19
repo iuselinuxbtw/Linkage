@@ -1,4 +1,6 @@
 # Linkage
+![GitHub Workflow Status for Tests](https://img.shields.io/github/workflow/status/BitJerkers/Linkage/Rust?label=tests)
+
 An open source VPN manager written in Rust, aimed at simplicity and security.
 
 | :exclamation: This program is still in beta and we do not guarantee leak safety. Use at your own risk.|
