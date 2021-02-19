@@ -4,7 +4,8 @@
 An open source VPN manager written in Rust, aimed at simplicity and security.
 
 | :exclamation: This program is still in beta and we do not guarantee leak safety. Use at your own risk.|
-|-------------------------------------------------------|
+|-------------------------------------------------------------------------------------------------------|
+
 This does not mean that we didn't test it but we cannot guarantee that your system works as intended.
 The software is provided as-is.
 
