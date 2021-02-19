@@ -22,88 +22,92 @@ use std::sync::Arc;
 
 /// The entry point of the cli application.
 pub fn entry() -> CliResult<()> {
-    // Administrator privileges are required
-    root_check()?;
-
     let matches = get_config_matches();
 
-    // Get the Ip Adresses and DNS Servers before the VPN connection
-    let ip_address_before = get_ip_information()?;
-    // TODO: Make this configurable
-    let dns_addresses_before = dns_test(100)?;
+    if let Some(matches) = matches.subcommand_matches("connect") {
+        // Administrator privileges are required
+        root_check()?;
 
-    // This should not be None
-    let config_file_path = matches.value_of("config").unwrap();
-    println!("Using configuration file {}", config_file_path);
-    let config_file = File::open(config_file_path)?;
+        // Get the Ip Adresses and DNS Servers before the VPN connection
+        let ip_address_before = get_ip_information()?;
+        // TODO: Make this configurable
+        let dns_addresses_before = dns_test(100)?;
 
-    // Get the exceptions from the configuration file
-    let exceptions = parse_configuration_file(config_file)?;
+        // This should not be None
+        let config_file_path = matches.value_of("config").unwrap();
+        println!("Using configuration file {}", config_file_path);
+        let config_file = File::open(config_file_path)?;
 
-    // The first backend is currently iptables, will be made more modular in the next versions
-    let firewall_backend = get_backends().first().unwrap();
-    if !firewall_backend.is_available()? {
-        return Err(error::CliError::FirewallBackendNotAvailable);
-    }
+        // Get the exceptions from the configuration file
+        let exceptions = parse_configuration_file(config_file)?;
 
-    firewall_backend.on_pre_connect(&exceptions)?;
-
-    let c = Command::new("openvpn")
-        .arg(config_file_path)
-        .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let process_id = c.id();
-    let mut stdout = c.stdout.unwrap();
-    let mut buffer = [0; 2048];
-
-    let regex = Regex::new(r"net_iface_up: set (tun[0-9]+) up").unwrap();
-
-    // TODO: Error handling
-    // This loop should probably be limited to about 30 seconds
-    let interface_name = loop {
-        stdout.read(&mut buffer)?;
-        let i = String::from_utf8_lossy(&buffer);
-        let matches = regex.captures(&i);
-        if let Some(matches) = matches {
-            let m = matches
-                .get(1)
-                .expect("couldn't get the interface from openvpn");
-            break m.as_str().to_string();
+        // The first backend is currently iptables, will be made more modular in the next versions
+        let firewall_backend = get_backends().first().unwrap();
+        if !firewall_backend.is_available()? {
+            return Err(error::CliError::FirewallBackendNotAvailable);
         }
-    };
 
-    // After connect
-    firewall_backend.on_post_connect(&interface_name)?;
+        firewall_backend.on_pre_connect(&exceptions)?;
 
-    // Get the ip addresses after the connection is established.
-    let ip_address_after = get_ip_information()?;
-    // TODO: Make this configurable
-    let dns_addresses_after = dns_test(100)?;
-    let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
-        .iter()
-        .filter(|&e| dns_addresses_before.contains(e))
-        .collect();
-    if matching_dns_addresses.len() > 0 {
-        println!("Detected DNS-Leak, disconnecting...");
-        return disconnect(firewall_backend, Some(process_id));
+        let c = Command::new("openvpn")
+            .arg(config_file_path)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let process_id = c.id();
+        let mut stdout = c.stdout.unwrap();
+        let mut buffer = [0; 2048];
+
+        let regex = Regex::new(r"net_iface_up: set (tun[0-9]+) up").unwrap();
+
+        // TODO: Error handling
+        // This loop should probably be limited to about 30 seconds
+        let interface_name = loop {
+            stdout.read(&mut buffer)?;
+            let i = String::from_utf8_lossy(&buffer);
+            let matches = regex.captures(&i);
+            if let Some(matches) = matches {
+                let m = matches
+                    .get(1)
+                    .expect("couldn't get the interface from openvpn");
+                break m.as_str().to_string();
+            }
+        };
+
+        // After connect
+        firewall_backend.on_post_connect(&interface_name)?;
+
+        // Get the ip addresses after the connection is established.
+        let ip_address_after = get_ip_information()?;
+        // TODO: Make this configurable
+        let dns_addresses_after = dns_test(100)?;
+        let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
+            .iter()
+            .filter(|&e| dns_addresses_before.contains(e))
+            .collect();
+        if matching_dns_addresses.len() > 0 {
+            println!("Detected DNS-Leak, disconnecting...");
+            return disconnect(firewall_backend, Some(process_id));
+        }
+        let matching_ip_addresses = ip_address_after.ip == ip_address_before.ip
+            || ip_address_after.ipv6 == ip_address_before.ipv6;
+        if matching_ip_addresses {
+            println!("Detected Ip-leak, disconnecting...");
+            return disconnect(firewall_backend, Some(process_id));
+        }
+
+        let running = Arc::new(AtomicBool::new(true));
+        let r = running.clone();
+        ctrlc::set_handler(move || r.store(false, Ordering::SeqCst)).unwrap();
+
+        println!("Waiting...");
+        while running.load(Ordering::SeqCst) {}
+        disconnect(firewall_backend, Some(process_id))?;
+
+        Ok(())
+    } else {
+        Ok(())
     }
-    let matching_ip_addresses = ip_address_after.ip == ip_address_before.ip
-        || ip_address_after.ipv6 == ip_address_before.ipv6;
-    if matching_ip_addresses {
-        println!("Detected Ip-leak, disconnecting...");
-        return disconnect(firewall_backend, Some(process_id));
-    }
-
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || r.store(false, Ordering::SeqCst)).unwrap();
-
-    println!("Waiting...");
-    while running.load(Ordering::SeqCst) {}
-    disconnect(firewall_backend, Some(process_id))?;
-
-    Ok(())
 }
 
 /// Checks if the program is running as root.
@@ -192,12 +196,12 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
         .version(consts::APP_VERSION)
         .author(consts::APP_AUTHOR)
         .about(consts::APP_ABOUT)
-        .arg(
-            ClapArg::with_name("config")
+        .subcommand(ClapApp::new("connect")
+            .about("connects using the supplied config and does leak checking and prevention")
+            .arg(ClapArg::with_name("config")
                 .required(true)
                 .short("c")
                 .long("config")
-                .value_name("FILE"),
-        )
+                .value_name("FILE")))
         .get_matches()
 }
