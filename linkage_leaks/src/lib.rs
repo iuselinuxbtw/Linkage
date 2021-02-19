@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_get_body() {
         let body = get_body("https://am.i.mullvad.net/ip");
-        IpAddr::from_str(body.unwrap);
+        IpAddr::from_str(body.unwrap().as_str());
     }
     #[test]
     fn test_generate_dns_leak_prefix() {
