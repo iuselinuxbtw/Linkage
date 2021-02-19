@@ -1,5 +1,6 @@
 # Linkage
-![GitHub Workflow Status for Tests](https://img.shields.io/github/workflow/status/BitJerkers/Linkage/Rust?label=tests)
+[![Tests](https://github.com/BitJerkers/Linkage/actions/workflows/tests.yml/badge.svg)](https://github.com/BitJerkers/Linkage/actions/workflows/tests.yml)
+[![Build (Linux)](https://github.com/BitJerkers/Linkage/actions/workflows/build-linux.yml/badge.svg)](https://github.com/BitJerkers/Linkage/actions/workflows/build-linux.yml)
 
 An open source VPN manager written in Rust, aimed at simplicity and security.
 
