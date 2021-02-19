@@ -1,6 +1,6 @@
 [package]
 name = "linkage_cli"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Benedikt <benediktb11@tuta.io>", "ravi0li <mail@moritz.pw>"]
 edition = "2018"
 license = "AGPL-3.0-only"
