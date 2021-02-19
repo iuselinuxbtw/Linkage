@@ -2,15 +2,15 @@
 
 mod error;
 
-use std::io::Read;
-use std::net::IpAddr;
-use std::thread;
+use error::LeakResult;
+use lazy_static::lazy_static;
 use random_string::{Charset, GenerationResult, RandomString};
 use serde::Deserialize;
 use serde_json;
-use error::LeakResult;
-use lazy_static::lazy_static;
-use std::sync::mpsc::{self, Sender, Receiver};
+use std::io::Read;
+use std::net::IpAddr;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 
 pub use error::LeakError;
 
@@ -95,7 +95,7 @@ fn get_dns_leak_test_config(mut amount_of_requests: u32) -> DnsTestConfig {
         total: amount_of_requests,
         requests_per_thread,
         amount_of_threads,
-    }
+    };
 }
 
 /// Returns a list of all detected DNS servers. The supplied argument amount_of_requests determines
@@ -118,7 +118,8 @@ pub fn dns_test(amount_of_requests: u32) -> LeakResult<Vec<IpAddr>> {
                 // TODO: Improve the error handling for this calls
                 let dns = get_dns().expect("cannot get dns server for dns leak detection");
                 // We use .except here since this will probably not happen because we calculate this
-                thread_tx.send(dns)
+                thread_tx
+                    .send(dns)
                     .expect("cannot transmit data through created channel for dns leak detection");
             }
         });
@@ -133,9 +134,9 @@ pub fn dns_test(amount_of_requests: u32) -> LeakResult<Vec<IpAddr>> {
 
     // Wait for the threads to finish
     for child in children {
-        child.join().map_err(|e| {
-            LeakError::JoiningThreadsError(e)
-        })?;
+        child
+            .join()
+            .map_err(|e| LeakError::JoiningThreadsError(e))?;
     }
 
     // Sort and deduplicate the ip addresses
@@ -169,7 +170,13 @@ fn generate_dns_leak_prefix() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
+    #[test]
+    fn test_get_body() {
+        let body = get_body("https://am.i.mullvad.net/ip");
+        IpAddr::from_str(body.unwrap);
+    }
     #[test]
     fn test_generate_dns_leak_prefix() {
         // Running this test often ensures that we generate all available characters, but it will
@@ -177,50 +184,73 @@ mod tests {
         for _ in 0..1000 {
             let s = generate_dns_leak_prefix();
             assert_eq!(40, s.len());
-            assert!(s.chars().all(|x| x.is_ascii_digit() || x.is_ascii_lowercase()));
+            assert!(s
+                .chars()
+                .all(|x| x.is_ascii_digit() || x.is_ascii_lowercase()));
         }
     }
 
     #[test]
     fn test_get_dns_leak_test_config() {
-        assert_eq!(DnsTestConfig {
-            total: 25,
-            requests_per_thread: 5,
-            amount_of_threads: 5,
-        }, get_dns_leak_test_config(25));
+        assert_eq!(
+            DnsTestConfig {
+                total: 25,
+                requests_per_thread: 5,
+                amount_of_threads: 5,
+            },
+            get_dns_leak_test_config(25)
+        );
 
-        assert_eq!(DnsTestConfig {
-            total: 100,
-            requests_per_thread: 5,
-            amount_of_threads: 20,
-        }, get_dns_leak_test_config(100));
+        assert_eq!(
+            DnsTestConfig {
+                total: 100,
+                requests_per_thread: 5,
+                amount_of_threads: 20,
+            },
+            get_dns_leak_test_config(100)
+        );
 
-        assert_eq!(DnsTestConfig {
-            total: 75,
-            requests_per_thread: 5,
-            amount_of_threads: 15,
-        }, get_dns_leak_test_config(74));
-        assert_eq!(DnsTestConfig {
-            total: 80,
-            requests_per_thread: 5,
-            amount_of_threads: 16,
-        }, get_dns_leak_test_config(76));
-        assert_eq!(DnsTestConfig {
-            total: 80,
-            requests_per_thread: 5,
-            amount_of_threads: 16,
-        }, get_dns_leak_test_config(79));
+        assert_eq!(
+            DnsTestConfig {
+                total: 75,
+                requests_per_thread: 5,
+                amount_of_threads: 15,
+            },
+            get_dns_leak_test_config(74)
+        );
+        assert_eq!(
+            DnsTestConfig {
+                total: 80,
+                requests_per_thread: 5,
+                amount_of_threads: 16,
+            },
+            get_dns_leak_test_config(76)
+        );
+        assert_eq!(
+            DnsTestConfig {
+                total: 80,
+                requests_per_thread: 5,
+                amount_of_threads: 16,
+            },
+            get_dns_leak_test_config(79)
+        );
 
-        assert_eq!(DnsTestConfig {
-            total: 0,
-            requests_per_thread: 5,
-            amount_of_threads: 0,
-        }, get_dns_leak_test_config(0));
+        assert_eq!(
+            DnsTestConfig {
+                total: 0,
+                requests_per_thread: 5,
+                amount_of_threads: 0,
+            },
+            get_dns_leak_test_config(0)
+        );
 
-        assert_eq!(DnsTestConfig {
-            total: 5,
-            requests_per_thread: 5,
-            amount_of_threads: 1,
-        }, get_dns_leak_test_config(1));
+        assert_eq!(
+            DnsTestConfig {
+                total: 5,
+                requests_per_thread: 5,
+                amount_of_threads: 1,
+            },
+            get_dns_leak_test_config(1)
+        );
     }
 }
