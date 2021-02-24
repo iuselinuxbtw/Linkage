@@ -23,6 +23,7 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
         .version(consts::APP_VERSION)
         .author(consts::APP_AUTHOR)
         .about(consts::APP_ABOUT)
+
         .subcommand(ClapApp::new("connect")
             .about("connects using the supplied config and does leak checking and prevention")
             .arg(ClapArg::with_name("config")
@@ -30,5 +31,17 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
                 .short("c")
                 .long("config")
                 .value_name("FILE")))
+
+        .subcommand(ClapApp::new("ipinfo")
+            .about("outputs ip information for IPv4 and IPv6")
+            .arg(ClapArg::with_name("no-ipv4")
+                .help("Do not test IPv4")
+                .long("no-ipv4")
+                .takes_value(false))
+            .arg(ClapArg::with_name("no-ipv6")
+                .help("Do not test IPv6")
+                .long("no-ipv6")
+                .takes_value(false)))
+
         .get_matches()
 }
