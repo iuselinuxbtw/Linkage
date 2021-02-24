@@ -4,13 +4,14 @@ pub mod iptables;
 
 use crate::error::FirewallResult;
 use crate::executor::Executor;
+use serde::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
 use std::net::IpAddr;
 use std::str::FromStr;
 
 /// A protocol for firewall exceptions.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum FirewallExceptionProtocol {
     TCP,
     UDP,
@@ -47,7 +48,7 @@ impl FromStr for FirewallExceptionProtocol {
 }
 
 /// When activating a firewall, the connections to these exceptions will be allowed.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct FirewallException {
     host: IpAddr,
     port: u16, // log2(65536)=16
@@ -82,7 +83,7 @@ impl PartialEq<&str> for FirewallIdentifier {
 impl PartialEq<FirewallIdentifier> for &str {
     /// Returns whether the string is equal to the identifier of a firewall backend.
     fn eq(&self, other: &FirewallIdentifier) -> bool {
-        return *other == *self
+        return *other == *self;
     }
 }
 
@@ -119,36 +120,39 @@ mod tests {
 
     #[test]
     fn test_firewall_identifier_partialeq_pointer_str() {
-        assert!(FirewallIdentifier {
-            identifier: "imagine"
-        } == "imagine");
-        assert_eq!(FirewallIdentifier {
-            identifier: "imagine"
-        }, "imagine");
+        assert!(
+            FirewallIdentifier {
+                identifier: "imagine"
+            } == "imagine"
+        );
+        assert_eq!(
+            FirewallIdentifier {
+                identifier: "imagine"
+            },
+            "imagine"
+        );
 
-        assert!(FirewallIdentifier {
-            identifier: "lol"
-        } != "imagine");
-        assert_ne!(FirewallIdentifier {
-            identifier: "lol"
-        }, "imagine");
+        assert!(FirewallIdentifier { identifier: "lol" } != "imagine");
+        assert_ne!(FirewallIdentifier { identifier: "lol" }, "imagine");
     }
 
     #[test]
     fn test_pointer_str_partialeq_firewall_identifier() {
-        assert!("imagine" == FirewallIdentifier {
-            identifier: "imagine"
-        });
-        assert_eq!("imagine", FirewallIdentifier {
-            identifier: "imagine"
-        });
+        assert!(
+            "imagine"
+                == FirewallIdentifier {
+                    identifier: "imagine"
+                }
+        );
+        assert_eq!(
+            "imagine",
+            FirewallIdentifier {
+                identifier: "imagine"
+            }
+        );
 
-        assert!("imagine" != FirewallIdentifier {
-            identifier: "lol"
-        });
-        assert_ne!("imagine", FirewallIdentifier {
-            identifier: "lol"
-        });
+        assert!("imagine" != FirewallIdentifier { identifier: "lol" });
+        assert_ne!("imagine", FirewallIdentifier { identifier: "lol" });
     }
 
     #[test]

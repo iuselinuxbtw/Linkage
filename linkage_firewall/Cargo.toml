@@ -1,6 +1,6 @@
 [package]
 name = "linkage_firewall"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["ravi0li <mail@moritz.pw>", "Benedikt <benediktb11@tuta.io>"]
 edition = "2018"
 license = "AGPL-3.0-only"
@@ -12,6 +12,7 @@ repository = "https://github.com/BitJerkers/Linkage"
 lazy_static = "1.4.0"
 thiserror = "1.0.23"
 which = "4.0.2"
+serde = { version = "1.0.123", features = ["derive"] }
 
 [dev-dependencies]
 mockall = "0.9.1"
