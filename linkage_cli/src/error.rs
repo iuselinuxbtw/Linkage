@@ -37,6 +37,9 @@ pub enum CliError {
 
     #[error("leak error: {0}")]
     LinkageLeakError(#[from] LeakError),
+
+    #[error("a subcommand is required to run this application. Run --help for more information.")]
+    SubcommandRequired,
 }
 
 pub(crate) type CliResult<T> = Result<T, CliError>;

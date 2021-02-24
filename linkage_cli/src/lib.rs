@@ -2,7 +2,7 @@ pub(crate) mod consts;
 pub mod error;
 mod cmd;
 
-use crate::error::CliResult;
+use crate::error::{CliResult, CliError};
 use clap::{App as ClapApp, Arg as ClapArg, ArgMatches as ClapArgMatches};
 
 /// The entry point of the cli application.
@@ -12,8 +12,11 @@ pub fn entry() -> CliResult<()> {
     if let Some(matches) = matches.subcommand_matches("connect") {
         cmd::connect::cmd_connect(matches)?;
         Ok(())
-    } else {
+    } else if let Some(matches) = matches.subcommand_matches("ipinfo") {
+        cmd::ipinfo::cmd_ipinfo(matches)?;
         Ok(())
+    } else {
+        Err(CliError::SubcommandRequired)
     }
 }
 
@@ -33,14 +36,22 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
                 .value_name("FILE")))
 
         .subcommand(ClapApp::new("ipinfo")
-            .about("outputs ip information for IPv4 and IPv6")
-            .arg(ClapArg::with_name("no-ipv4")
-                .help("Do not test IPv4")
-                .long("no-ipv4")
+            .about("outputs ip information and does dns tests")
+            .arg(ClapArg::with_name("no-ip")
+                .help("Do not check ip address")
+                .long("no-ip")
                 .takes_value(false))
-            .arg(ClapArg::with_name("no-ipv6")
-                .help("Do not test IPv6")
-                .long("no-ipv6")
+            .arg(ClapArg::with_name("no-ip4")
+                .help("Do not output ipv4 address information")
+                .long("no-ip4")
+                .takes_value(false))
+            .arg(ClapArg::with_name("no-ip6")
+                .help("Do not output ipv6 address information")
+                .long("no-ip6")
+                .takes_value(false))
+            .arg(ClapArg::with_name("no-dns")
+                .help("Do not run dns tests")
+                .long("no-dns")
                 .takes_value(false)))
 
         .get_matches()
