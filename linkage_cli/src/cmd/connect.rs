@@ -85,8 +85,8 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
         println!("Detected DNS-Leak, disconnecting...");
         return disconnect(firewall_backend, Some(process_id));
     }
-    let matching_ip_addresses = ip_address_after.ip == ip_address_before.ip
-        || ip_address_after.ipv6 == ip_address_before.ipv6;
+    let matching_ip_addresses = ip_address_after.0.ip == ip_address_before.0.ip
+        || ip_address_after.1.ip == ip_address_before.1.ip;
     if matching_ip_addresses {
         println!("Detected Ip-leak, disconnecting...");
         return disconnect(firewall_backend, Some(process_id));
