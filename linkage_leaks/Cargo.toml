@@ -1,11 +1,16 @@
 [package]
 name = "linkage_leaks"
-version = "0.1.0"
-authors = ["Benedikt <benediktb11@tuta.io>"]
+version = "0.3.0"
+authors = ["Benedikt <benediktb11@tuta.io>", "ravi0li <mail@moritz.pw>"]
 edition = "2018"
+license = "AGPL-3.0-only"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11", features = ["blocking", "json"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
 random-string = "0.1.2"
+serde = { version = "1.0.123", features = ["derive"] }
+serde_json = "1.0.62"
+thiserror = "1.0.23"
+lazy_static = "1.4.0"

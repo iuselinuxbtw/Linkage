@@ -59,29 +59,27 @@ pub fn does_binary_exist(binary: &str) -> FirewallResult<bool> {
 
 #[cfg(test)]
 mod tests {
-    use crate::executor::{Executor, MockExecutor};
-    use mockall::predicate::*;
     use crate::error::{FirewallError, FirewallResult};
+    use crate::executor::{Executor, MockExecutor};
     use crate::expect_execute;
+    use mockall::predicate::*;
 
     #[test]
     fn test_to_string_vec() {
         let v1: Vec<String> = vec![];
         let v2: Vec<String> = to_string_vec!();
-        assert_eq!(
-            v1,
-            v2,
-        );
-        assert_eq!(
-            vec![String::from("Hello")],
-            to_string_vec!("Hello"),
-        );
+        assert_eq!(v1, v2,);
+        assert_eq!(vec![String::from("Hello")], to_string_vec!("Hello"),);
         assert_eq!(
             vec![String::from("Hello"), String::from("World")],
             to_string_vec!("Hello", "World"),
         );
         assert_eq!(
-            vec![String::from("Hello"), String::from("World"), String::from("!!!")],
+            vec![
+                String::from("Hello"),
+                String::from("World"),
+                String::from("!!!")
+            ],
             to_string_vec!("Hello", "World", "!!!"),
         );
     }
@@ -94,7 +92,11 @@ mod tests {
 
         let mut e2_mock = MockExecutor::new();
         expect_execute!(e2_mock, to_string_vec!("test", "abc"));
-        expect_execute!(e2_mock, to_string_vec!("cat"), Err(FirewallError::IptablesError(None)));
+        expect_execute!(
+            e2_mock,
+            to_string_vec!("cat"),
+            Err(FirewallError::IptablesError(None))
+        );
 
         executor_execute_for!(to_string_vec!("hello", "world", "420"), e1_mock);
         executor_execute_for!(to_string_vec!("test", "abc"), e1_mock, e2_mock);
@@ -103,7 +105,8 @@ mod tests {
         assert!(|| -> Result<(), FirewallError> {
             executor_execute_for!(to_string_vec!("cat"), e2_mock);
             Ok(())
-        }().is_err());
+        }()
+        .is_err());
 
         Ok(())
     }
