@@ -15,5 +15,7 @@ pub enum ConfigError {
     FileReadingError,
     #[error("Couldn't deserialize the config file")]
     DeserializeError,
+    #[error("Couldn't delete the config file")]
+    FileDeletionError,
 }
 impl ConfigError {}
