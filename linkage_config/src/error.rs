@@ -1,4 +1,7 @@
+use std::io::Error as IOError;
 use thiserror::Error;
+use toml::de::Error as TomlDeserializeError;
+use toml::ser::Error as TomlSerializeError;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -6,16 +9,11 @@ pub enum ConfigError {
     #[error("Couldn't get home directory")]
     PathError,
     #[error("Couldn't write config file")]
-    SaveError,
+    SaveError(#[from] IOError),
     #[error("Couldn't serialize the data to save")]
-    SerializeError,
-    #[error("Couldn't create the config directory")]
-    CreateDirError,
-    #[error("Couldn't read the config file")]
-    FileReadingError,
+    SerializeError(#[from] TomlSerializeError),
     #[error("Couldn't deserialize the config file")]
-    DeserializeError,
-    #[error("Couldn't delete the config file")]
-    FileDeletionError,
+    DeserializeError(#[from] TomlDeserializeError),
 }
-impl ConfigError {}
+
+pub type ConfigResult<T> = Result<T, ConfigError>;

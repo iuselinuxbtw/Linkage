@@ -1,9 +1,7 @@
 mod error;
 mod utils;
 
-use crate::error::ConfigError::{
-    CreateDirError, DeserializeError, FileReadingError, SaveError, SerializeError,
-};
+use crate::error::{ConfigError, ConfigResult};
 use linkage_firewall::FirewallException;
 use serde::{Deserialize, Serialize};
 use std::fs::create_dir;
@@ -21,36 +19,34 @@ pub struct Config {
 }
 
 /// Saves serializeable data to a config file in .config/linkage/[name]
-pub fn save_config<T: Serialize>(data: &T, name: &str) {
-    let serialized = toml::to_string(&data).map_err(|_| SerializeError).unwrap();
+pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError> {
+    let serialized = toml::to_string(&data)?;
     let home_dir = get_home_dir();
     let config_dir = home_dir.join(".config/linkage/");
     if !config_dir.exists() {
-        create_config_dir(&config_dir)
+        create_config_dir(&config_dir)?;
     }
-    std::fs::write(config_dir.join(name), serialized)
-        .map_err(|_| SaveError)
-        .unwrap();
+    std::fs::write(config_dir.join(name), serialized)?;
+    Ok(())
 }
 
-/// Creates a directory if it doesn't exist yet
-pub fn create_config_dir(path: &PathBuf) {
+/// Creates a directory if it doesn't exist yet. Return true if it was created, false if it existed
+pub fn create_config_dir(path: &PathBuf) -> Result<bool, ConfigError> {
     if path.exists() {
-        return;
+        return Ok(false);
     }
-    create_dir(path).map_err(|_| CreateDirError).unwrap();
+    create_dir(path)?;
+    Ok(true)
 }
 
 /// Opens the config file with the given Path and returns a Config
-pub fn open_config(path: PathBuf) -> Config {
-    let file = std::fs::read_to_string(path)
-        .map_err(|_| FileReadingError)
-        .unwrap();
-    toml::from_str(&file).map_err(|_| DeserializeError).unwrap()
+pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
+    let file = std::fs::read_to_string(path)?;
+    let c: Config = toml::from_str(&file)?;
+    Ok(c)
 }
 #[cfg(test)]
 mod tests {
-    use crate::error::ConfigError::{FileDeletionError, FileReadingError};
     use crate::utils::get_home_dir;
     use crate::{save_config, Config, FirewallConfig};
     use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
@@ -89,11 +85,9 @@ mod tests {
         let config = Config {
             firewall: firewall_conf,
         };
-        save_config(&config, "tsconfig");
+        save_config(&config, "tsconfig").unwrap();
         let filepath = get_home_dir().join(".config/linkage/tsconfig");
-        let contents = fs::read_to_string(&filepath)
-            .map_err(|_| FileReadingError)
-            .unwrap();
+        let contents = fs::read_to_string(&filepath).unwrap();
         // This string formatting could be nicer but for now it works fine.
         let expected = r#"[[firewall.exception]]
 host = "192.168.1.112"
@@ -106,8 +100,6 @@ port = 187
 protocol = "UDP"
 "#;
         assert_eq!(contents, expected);
-        fs::remove_file(filepath)
-            .map_err(|_| FileDeletionError)
-            .unwrap();
+        fs::remove_file(filepath).unwrap();
     }
 }
