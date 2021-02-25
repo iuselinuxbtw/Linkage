@@ -8,7 +8,7 @@ use error::LeakResult;
 use std::io::Read;
 
 pub use error::LeakError;
-pub use ip::get_ip_information;
+pub use ip::{get_ip_information, IpInformation};
 pub use dns::dns_test;
 
 /// Returns the response body of a given url.

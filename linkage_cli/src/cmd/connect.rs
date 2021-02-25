@@ -19,7 +19,6 @@ use is_elevated::is_elevated;
 #[cfg(unix)]
 use libc;
 
-
 pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
     // Administrator privileges are required
     root_check()?;
