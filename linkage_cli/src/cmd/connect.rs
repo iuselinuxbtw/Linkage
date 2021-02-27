@@ -6,6 +6,8 @@ use clap::ArgMatches;
 use is_elevated::is_elevated;
 #[cfg(unix)]
 use libc;
+use linkage_config::utils::get_home_dir;
+use linkage_config::{open_config, Config};
 use linkage_firewall::get_backends;
 use linkage_firewall::FirewallBackend;
 use linkage_firewall::FirewallException;
@@ -15,6 +17,7 @@ use regex::Regex;
 use std::fs::File;
 use std::io::Read;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -34,7 +37,23 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
     let config_file = File::open(config_file_path)?;
 
     // Get the exceptions from the configuration file
-    let exceptions = parse_configuration_file(config_file)?;
+    let mut exceptions = parse_configuration_file(config_file)?;
+
+    // Add the exceptions from the exception-file
+    let exception_config_path: PathBuf = matches
+        .value_of("exception-file")
+        .unwrap_or(
+            get_home_dir()
+                .join(".config/linkage/config")
+                .to_str()
+                .unwrap(),
+        )
+        .parse()
+        .unwrap();
+    if exception_config_path.exists() {
+        let mut additional_exception: Config = open_config(exception_config_path).unwrap();
+        exceptions.append(&mut additional_exception.firewall.exception);
+    }
 
     // The first backend is currently iptables, will be made more modular in the next versions
     let firewall_backend = get_backends().first().unwrap();

@@ -11,6 +11,7 @@ license = "AGPL-3.0-only"
 [dependencies]
 linkage_leaks = { path = "../linkage_leaks" }
 linkage_firewall = { path = "../linkage_firewall" }
+linkage_config = { path = "../linkage_config"}
 
 thiserror = "1.0.23"
 clap = "2.33.3"

@@ -52,6 +52,14 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
                                 }
                             }
                         }),
+                )
+                .arg(
+                    // TODO: Rename to something similar to config file
+                    ClapArg::with_name("exception-file")
+                        .help("Configuration file for firewall exceptions")
+                        .required(false)
+                        .short("e")
+                        .long("exception-file")
                 ),
         )
         .subcommand(

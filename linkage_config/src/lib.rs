@@ -1,5 +1,5 @@
 mod error;
-mod utils;
+pub mod utils;
 
 use crate::error::{ConfigError, ConfigResult};
 use linkage_firewall::FirewallException;
