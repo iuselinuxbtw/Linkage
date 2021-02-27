@@ -18,7 +18,7 @@ use std::fs::File;
 use std::io::Read;
 use std::net::IpAddr;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -63,7 +63,7 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
 
     firewall_backend.on_pre_connect(&exceptions)?;
 
-    let c = Command::new("openvpn")
+    let c: Child = Command::new("openvpn")
         .arg(config_file_path)
         .stdout(Stdio::piped())
         .spawn()
@@ -152,14 +152,19 @@ fn disconnect(
     // When disconnecting
     firewall_backend.on_disconnect()?;
 
-    // TODO: Move to own function
     if let Some(id) = process_id {
-        unsafe {
-            libc::kill(id as i32, libc::SIGTERM);
-        }
+        kill_process(id);
     }
 
     Ok(())
+}
+
+/// Kills a process with the given process id
+fn kill_process(process_id: u32) {
+    // Maybe do this with Child.kill()
+    unsafe {
+        libc::kill(process_id as i32, libc::SIGTERM);
+    }
 }
 
 /// Parses the supplied configuration file using ovpnfile.
