@@ -1,7 +1,7 @@
 //! Contains utilities to get information about an ip address.
 
-use crate::get_body;
 use crate::error::LeakResult;
+use crate::get_body;
 use serde::Deserialize;
 use serde_json;
 
@@ -45,6 +45,7 @@ type Ip6Information = IpInformation;
 /// turns them into an instance of IpInformation. Returns a tuple with the information for IPv4 at
 /// index `0` and IPv6 at `1`
 pub fn get_ip_information() -> LeakResult<(Ip4Information, Ip6Information)> {
+    // TODO: Add error handling for clients that don't have either ipv4 or ipv6
     let ipv4_response = get_body(LEAK_DETECT_IPV4_SITE)?;
     let ipv6_response = get_body(LEAK_DETECT_IPV6_SITE)?;
 
