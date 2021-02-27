@@ -25,7 +25,6 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
 
     // Get the Ip Addresses and DNS Servers before the VPN connection
     let ip_address_before = get_ip_information()?;
-    // TODO: Make this configurable
     let dns_addresses_before =
         dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
 
@@ -75,7 +74,6 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
 
     // Get the ip addresses after the connection is established.
     let ip_address_after = get_ip_information()?;
-    // TODO: Make this configurable
     let dns_addresses_after = dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
     let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
         .iter()
