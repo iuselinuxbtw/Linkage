@@ -8,12 +8,12 @@ use std::fs::create_dir;
 use std::path::PathBuf;
 use utils::get_home_dir;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct FirewallConfig {
     pub exception: Vec<FirewallException>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub firewall: FirewallConfig,
 }
@@ -48,9 +48,10 @@ pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
 #[cfg(test)]
 mod tests {
     use crate::utils::get_home_dir;
-    use crate::{save_config, Config, FirewallConfig};
+    use crate::{open_config, save_config, Config, FirewallConfig};
     use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
     use std::fs;
+    use std::io::Write;
     use toml::Value;
 
     #[test]
@@ -82,7 +83,7 @@ mod tests {
         let firewall_conf: FirewallConfig = FirewallConfig {
             exception: exceptions,
         };
-        let config = Config {
+        let config: Config = Config {
             firewall: firewall_conf,
         };
         save_config(&config, "tsconfig").unwrap();
@@ -100,6 +101,45 @@ port = 187
 protocol = "UDP"
 "#;
         assert_eq!(contents, expected);
+        fs::remove_file(filepath).unwrap();
+    }
+
+    #[test]
+    fn test_open_config() {
+        let filepath = get_home_dir().join(".config/linkage/tsconfig");
+        let exception1 = FirewallException::new(
+            "192.168.1.112".parse().unwrap(),
+            31,
+            FirewallExceptionProtocol::TCP,
+        );
+        let exception2 = FirewallException::new(
+            "2607:f0d0:1002:0051:0000:0000:0000:0004".parse().unwrap(),
+            187,
+            FirewallExceptionProtocol::UDP,
+        );
+        let mut exceptions: Vec<FirewallException> = Vec::new();
+        exceptions.push(exception1);
+        exceptions.push(exception2);
+        let firewall_conf: FirewallConfig = FirewallConfig {
+            exception: exceptions,
+        };
+        let expected: Config = Config {
+            firewall: firewall_conf,
+        };
+        let to_write = r#"[[firewall.exception]]
+host = "192.168.1.112"
+port = 31
+protocol = "TCP"
+
+[[firewall.exception]]
+host = "2607:f0d0:1002:51::4"
+port = 187
+protocol = "UDP"
+"#;
+        let mut file = std::fs::File::create(&filepath).unwrap();
+        file.write_all(to_write.as_ref()).unwrap();
+        let result = open_config(filepath.clone()).unwrap();
+        assert_eq!(result.firewall.exception, expected.firewall.exception);
         fs::remove_file(filepath).unwrap();
     }
 }
