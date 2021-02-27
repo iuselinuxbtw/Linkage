@@ -1,8 +1,8 @@
 //! Contains the `ipinfo` subcommand.
 
-use clap::ArgMatches;
 use crate::error::CliResult;
-use linkage_leaks::{IpInformation, get_ip_information, dns_test};
+use clap::ArgMatches;
+use linkage_leaks::{dns_test, get_ip_information, IpInformation};
 
 pub fn cmd_ipinfo(matches: &ArgMatches) -> CliResult<()> {
     // Output ip information if wanted
@@ -27,7 +27,7 @@ pub fn cmd_ipinfo(matches: &ArgMatches) -> CliResult<()> {
     // Do dns test if wanted
     if !matches.is_present("no-dns") {
         // TODO: Make amount of requests configurable
-        let dns_servers = dns_test(100)?;
+        let dns_servers = dns_test(matches.value_of("dns_requests").unwrap().parse()?)?;
 
         println!();
         println!("----- DNS servers -----");
@@ -50,9 +50,17 @@ fn print_ip_information(i: IpInformation) {
     println!("Region: {} ({})", i.region_name, i.region_code);
     println!("Continent: {} ({})", i.continent_name, i.continent_code);
     println!(
-        "City: {} ({}) ({})", i.city_name, i.postal_code.unwrap_or_else(|| String::from("-")),
+        "City: {} ({}) ({})",
+        i.city_name,
+        i.postal_code.unwrap_or_else(|| String::from("-")),
         i.postal_confidence.unwrap_or_else(|| String::from("-"))
     );
-    println!("Metro code: {}", i.metro_code.unwrap_or_else(|| String::from("-")));
-    println!("Lat/Long: {}/{} (Accuracy: {}km)", i.latitude, i.longitude, i.accuracy_radius);
+    println!(
+        "Metro code: {}",
+        i.metro_code.unwrap_or_else(|| String::from("-"))
+    );
+    println!(
+        "Lat/Long: {}/{} (Accuracy: {}km)",
+        i.latitude, i.longitude, i.accuracy_radius
+    );
 }

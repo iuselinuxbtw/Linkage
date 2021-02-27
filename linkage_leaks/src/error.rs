@@ -1,17 +1,17 @@
-use thiserror::Error;
-use reqwest::Error as ReqwestError;
-use std::io::Error as IoError;
+use reqwest::Error as RequestError;
 use serde_json::Error as SerdeJsonError;
 use std::any::Any;
-use std::sync::mpsc::RecvError;
+use std::io::Error as IoError;
 use std::net::AddrParseError;
+use std::sync::mpsc::RecvError;
+use thiserror::Error;
 
 pub(crate) type LeakResult<T> = Result<T, LeakError>;
 
 #[derive(Error, Debug)]
 pub enum LeakError {
     #[error("request error: {0}")]
-    RequestError(#[from] ReqwestError),
+    RequestError(#[from] RequestError),
     #[error("io error: {0}")]
     IoError(#[from] IoError),
     #[error("cannot parse json: {0}")]

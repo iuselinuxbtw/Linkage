@@ -2,5 +2,5 @@
 
 
 cargo build
-cd target/debug/
+cd target/debug/ || exit
 sudo ./linkage_cli -c Prague.ovpn

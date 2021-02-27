@@ -18,7 +18,7 @@ pub struct Config {
     pub firewall: FirewallConfig,
 }
 
-/// Saves serializeable data to a config file in .config/linkage/[name]
+/// Saves serializable data to a config file in .config/linkage/[name]
 pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError> {
     let serialized = toml::to_string(&data)?;
     let home_dir = get_home_dir();

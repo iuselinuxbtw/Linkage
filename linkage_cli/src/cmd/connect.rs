@@ -1,10 +1,14 @@
 //! Contains the `connect` subcommand.
 
-use clap::ArgMatches;
 use crate::error::{CliError, CliResult};
+use clap::ArgMatches;
+#[cfg(windows)]
+use is_elevated::is_elevated;
+#[cfg(unix)]
+use libc;
+use linkage_firewall::get_backends;
 use linkage_firewall::FirewallBackend;
 use linkage_firewall::FirewallException;
-use linkage_firewall::get_backends;
 use linkage_leaks::{dns_test, get_ip_information};
 use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
 use regex::Regex;
@@ -14,19 +18,16 @@ use std::net::IpAddr;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-#[cfg(windows)]
-use is_elevated::is_elevated;
-#[cfg(unix)]
-use libc;
 
 pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
     // Administrator privileges are required
     root_check()?;
 
-    // Get the Ip Adresses and DNS Servers before the VPN connection
+    // Get the Ip Addresses and DNS Servers before the VPN connection
     let ip_address_before = get_ip_information()?;
     // TODO: Make this configurable
-    let dns_addresses_before = dns_test(100)?;
+    let dns_addresses_before =
+        dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
 
     // This should not be None
     let config_file_path = matches.value_of("config").unwrap();
@@ -75,7 +76,7 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
     // Get the ip addresses after the connection is established.
     let ip_address_after = get_ip_information()?;
     // TODO: Make this configurable
-    let dns_addresses_after = dns_test(100)?;
+    let dns_addresses_after = dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
     let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
         .iter()
         .filter(|&e| dns_addresses_before.contains(e))
@@ -114,7 +115,7 @@ fn root_check() -> CliResult<()> {
     // We're assuming all other Platforms are Unix-based
     else {
         #[cfg(unix)]
-            unsafe {
+        unsafe {
             let uid = libc::getuid();
             if uid != 0 {
                 // TODO: Ask for root permission

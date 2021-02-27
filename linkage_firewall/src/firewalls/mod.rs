@@ -138,11 +138,11 @@ mod tests {
 
     #[test]
     fn test_pointer_str_partialeq_firewall_identifier() {
-        assert!(
-            "imagine"
-                == FirewallIdentifier {
-                    identifier: "imagine"
-                }
+        assert_eq!(
+            "imagine",
+            FirewallIdentifier {
+                identifier: "imagine"
+            }
         );
         assert_eq!(
             "imagine",
@@ -151,7 +151,6 @@ mod tests {
             }
         );
 
-        assert!("imagine" != FirewallIdentifier { identifier: "lol" });
         assert_ne!("imagine", FirewallIdentifier { identifier: "lol" });
     }
 
