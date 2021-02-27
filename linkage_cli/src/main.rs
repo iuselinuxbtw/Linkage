@@ -1,6 +1,6 @@
+use colored::Colorize;
 use linkage_cli::entry;
 use std::process::exit;
-use colored::Colorize;
 
 fn main() {
     let r = entry();

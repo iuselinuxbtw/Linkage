@@ -1,7 +1,7 @@
 use crate::error::FirewallResult;
 use std::fmt::Debug;
 #[cfg(test)]
-use std::fmt::{Result as FmtResult, Formatter};
+use std::fmt::{Formatter, Result as FmtResult};
 
 pub mod iptables;
 
@@ -12,7 +12,7 @@ pub trait Executor: Debug {
 }
 
 #[cfg(test)]
-mockall::mock!{
+mockall::mock! {
     pub Executor {}
     impl Executor for MockExecutor {
         fn execute(&self, args: Vec<String>) -> FirewallResult<()>;
@@ -22,8 +22,7 @@ mockall::mock!{
 #[cfg(test)]
 impl Debug for MockExecutor {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.debug_struct("MockExecutor")
-            .finish()
+        f.debug_struct("MockExecutor").finish()
     }
 }
 

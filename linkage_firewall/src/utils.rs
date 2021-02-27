@@ -1,7 +1,7 @@
 //! Utilities related to the firewall backends and their implementation.
 
-use std::env;
 use crate::error::FirewallResult;
+use std::env;
 use which::{which, Error as WhichError};
 
 /// Turns the supplied arguments into a Vec<String>. Converts the arguments using String::from.
@@ -43,15 +43,9 @@ pub fn does_binary_exist(binary: &str) -> FirewallResult<bool> {
     // the binary was not found but the action itself was successful. Else, an error
     // happened while trying to lookup the iptables binary
     match result.err() {
-        Some(e) => {
-            match e {
-                WhichError::CannotFindBinaryPath => {
-                    Ok(false)
-                },
-                _ => {
-                    Err(e.into())
-                },
-            }
+        Some(e) => match e {
+            WhichError::CannotFindBinaryPath => Ok(false),
+            _ => Err(e.into()),
         },
         None => Ok(true),
     }

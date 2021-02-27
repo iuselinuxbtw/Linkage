@@ -1,10 +1,10 @@
 use linkage_firewall::FirewallError;
 use linkage_firewall::FirewallExceptionProtocolError;
+use linkage_leaks::LeakError;
 use std::io;
 use std::net::AddrParseError;
 use std::num::ParseIntError;
 use thiserror::Error;
-use linkage_leaks::LeakError;
 
 #[derive(Error, Debug)]
 pub enum CliError {

@@ -1,15 +1,15 @@
 //! Can check the current DNS servers as well as the outgoing ip address of the system.
 
+mod dns;
 mod error;
 mod ip;
-mod dns;
 
 use error::LeakResult;
 use std::io::Read;
 
+pub use dns::dns_test;
 pub use error::LeakError;
 pub use ip::{get_ip_information, IpInformation};
-pub use dns::dns_test;
 
 /// Returns the response body of a given url.
 fn get_body(url: &str) -> LeakResult<String> {
@@ -22,8 +22,8 @@ fn get_body(url: &str) -> LeakResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
     use std::net::IpAddr;
+    use std::str::FromStr;
 
     #[test]
     fn test_get_body() {
