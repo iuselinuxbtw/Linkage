@@ -5,7 +5,6 @@ use toml::ser::Error as TomlSerializeError;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    // TODO: Use #[from] for these errors, similar to linkage_cli
     #[error("Couldn't get home directory")]
     PathError,
     #[error("Couldn't write config file")]

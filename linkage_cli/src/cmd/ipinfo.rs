@@ -26,7 +26,6 @@ pub fn cmd_ipinfo(matches: &ArgMatches) -> CliResult<()> {
 
     // Do dns test if wanted
     if !matches.is_present("no-dns") {
-        // TODO: Make amount of requests configurable
         let dns_servers = dns_test(matches.value_of("dns_requests").unwrap().parse()?)?;
 
         println!();
