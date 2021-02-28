@@ -1,31 +1,35 @@
+//! Contains the configuration part of Linkage.
+
 mod error;
 pub mod utils;
 
 use crate::error::{ConfigError, ConfigResult};
+use crate::utils::get_config_dir;
 use linkage_firewall::FirewallException;
 use serde::{Deserialize, Serialize};
 use std::fs::create_dir;
 use std::path::PathBuf;
 use utils::get_home_dir;
 
+/// Contains the configuration of the firewall.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FirewallConfig {
     pub exception: Vec<FirewallException>,
 }
 
+/// The general application configuration. Holds all configuration values.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub firewall: FirewallConfig,
 }
 
-/// Saves serializable data to a config file in .config/linkage/[name]
+/// Saves serializable data to a config file in `.config/linkage/[name]`.
 pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError> {
     // First we need to serialize the data
     let serialized = toml::to_string(&data)?;
 
-    // Create the path to where the config is going to be saved
-    let home_dir = get_home_dir();
-    let config_dir = home_dir.join(".config/linkage/");
+    // Get the config directory
+    let config_dir = get_config_dir();
     // If the config directory doesn't exist we're going to create it
     create_config_dir(&config_dir)?;
 
@@ -34,7 +38,7 @@ pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError
     Ok(())
 }
 
-/// Creates a directory if it doesn't exist yet. Return true if it was created, false if it existed
+/// Creates a directory if it doesn't exist yet. Return true if it was created, false if it existed.
 pub fn create_config_dir(path: &PathBuf) -> Result<bool, ConfigError> {
     // Checks if the directory already exists
     if path.exists() {
@@ -52,9 +56,10 @@ pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
     let c: Config = toml::from_str(&file)?;
     Ok(c)
 }
+
 #[cfg(test)]
 mod tests {
-    use crate::utils::get_home_dir;
+    use crate::utils::{get_config_dir, get_home_dir};
     use crate::{open_config, save_config, Config, FirewallConfig};
     use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
     use std::fs;
@@ -67,11 +72,10 @@ mod tests {
         let value = string.parse::<Value>().unwrap();
         assert_eq!(value["linkage"].as_str(), Some("cool"));
     }
-    #[test]
-    fn config_parsing() {}
-    #[test]
+
     /// Creates two artificial exceptions and saves them to a config file. Then it compares the
     /// written file to a predefined string and deletes the test file after.
+    #[test]
     fn test_save_config() {
         // Create two artificial exceptions
         let exception1 = FirewallException::new(
@@ -94,7 +98,7 @@ mod tests {
             firewall: firewall_conf,
         };
         save_config(&config, "tsconfig").unwrap();
-        let filepath = get_home_dir().join(".config/linkage/tsconfig");
+        let filepath = get_config_dir();
         let contents = fs::read_to_string(&filepath).unwrap();
         // This string formatting could be nicer but for now it works fine.
         let expected = r#"[[firewall.exception]]
@@ -111,11 +115,11 @@ protocol = "UDP"
         fs::remove_file(filepath).unwrap();
     }
 
-    #[test]
     /// Creates a tsconfig file and saves two exceptions to a file and then compares them to the
     /// expected result.
+    #[test]
     fn test_open_config() {
-        let filepath = get_home_dir().join(".config/linkage/tsconfig");
+        let filepath = get_config_dir();
         let exception1 = FirewallException::new(
             "192.168.1.112".parse().unwrap(),
             31,
