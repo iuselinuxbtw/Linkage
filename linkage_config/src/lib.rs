@@ -20,18 +20,23 @@ pub struct Config {
 
 /// Saves serializable data to a config file in .config/linkage/[name]
 pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError> {
+    // First we need to serialize the data
     let serialized = toml::to_string(&data)?;
+
+    // Create the path to where the config is going to be saved
     let home_dir = get_home_dir();
     let config_dir = home_dir.join(".config/linkage/");
-    if !config_dir.exists() {
-        create_config_dir(&config_dir)?;
-    }
+    // If the config directory doesn't exist we're going to create it
+    create_config_dir(&config_dir)?;
+
+    // Write the serialized data to the config file
     std::fs::write(config_dir.join(name), serialized)?;
     Ok(())
 }
 
 /// Creates a directory if it doesn't exist yet. Return true if it was created, false if it existed
 pub fn create_config_dir(path: &PathBuf) -> Result<bool, ConfigError> {
+    // Checks if the directory already exists
     if path.exists() {
         return Ok(false);
     }
@@ -41,7 +46,9 @@ pub fn create_config_dir(path: &PathBuf) -> Result<bool, ConfigError> {
 
 /// Opens the config file with the given Path and returns a Config
 pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
+    // Reads the config file to a string
     let file = std::fs::read_to_string(path)?;
+    // Serialize the string and return the Config
     let c: Config = toml::from_str(&file)?;
     Ok(c)
 }
@@ -105,6 +112,8 @@ protocol = "UDP"
     }
 
     #[test]
+    /// Creates a tsconfig file and saves two exceptions to a file and then compares them to the
+    /// expected result.
     fn test_open_config() {
         let filepath = get_home_dir().join(".config/linkage/tsconfig");
         let exception1 = FirewallException::new(
