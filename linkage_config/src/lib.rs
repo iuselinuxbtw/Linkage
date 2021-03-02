@@ -9,7 +9,6 @@ use linkage_firewall::FirewallException;
 use serde::{Deserialize, Serialize};
 use std::fs::create_dir;
 use std::path::PathBuf;
-use utils::get_home_dir;
 
 /// Contains the configuration of the firewall.
 #[derive(Serialize, Deserialize, Debug)]
@@ -59,7 +58,7 @@ pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{get_config_dir, get_home_dir};
+    use crate::utils::get_config_dir;
     use crate::{open_config, save_config, Config, FirewallConfig};
     use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
     use std::fs;

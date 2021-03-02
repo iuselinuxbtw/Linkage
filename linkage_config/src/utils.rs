@@ -1,7 +1,6 @@
 use crate::error::ConfigError::PathError;
 use home::home_dir;
 use std::path;
-use std::path::PathBuf;
 
 /// Gets the home directory under Linux as well as Windows.
 /// # Panics
