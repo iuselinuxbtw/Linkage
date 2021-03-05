@@ -1,12 +1,17 @@
+NAME = linkage
+INSTALL_DIR = /usr/bin/
+
 RUSTFLAGS=-C link-arg=-s
 
-make:
+all: build install
+
+build:
 	export RUSTFLAGS="%(RUSTFLAGS)"
 	cargo build --release
 
 install:
-	cp -f target/release/linkage_cli /usr/bin/linkage
-	chmod +x /usr/bin/linkage
+	cp -f target/release/linkage_cli $(INSTALL_DIR)$(NAME)
+	chmod +x $(INSTALL_DIR)$(NAME)
 
 uninstall:
-	rm -f /usr/bin/linkage
+	rm -f $(INSTALL_DIR)$(NAME)
