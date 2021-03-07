@@ -32,7 +32,7 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
         dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
 
     // This should not be None
-    let config_file_path = matches.value_of("config").unwrap();
+    let config_file_path = matches.value_of("file").unwrap();
     println!("Using configuration file {}", config_file_path);
     let config_file = File::open(config_file_path)?;
 
@@ -41,7 +41,7 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
 
     // Add the exceptions from the exception-file
     let exception_config_path: PathBuf = matches
-        .value_of("exception-file")
+        .value_of("config")
         .unwrap_or(
             get_home_dir()
                 .join(".config/linkage/config")

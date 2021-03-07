@@ -30,10 +30,10 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
             ClapApp::new("connect")
                 .about("connects using the supplied config and does leak checking and prevention")
                 .arg(
-                    ClapArg::with_name("config")
+                    ClapArg::with_name("file")
                         .required(true)
-                        .short("c")
-                        .long("config")
+                        .short("f")
+                        .long("file")
                         .value_name("FILE"),
                 )
                 .arg(
@@ -54,12 +54,12 @@ fn get_config_matches<'a>() -> ClapArgMatches<'a> {
                         }),
                 )
                 .arg(
-                    // TODO: Rename to something similar to config file
-                    ClapArg::with_name("exception-file")
+                    ClapArg::with_name("config")
                         .help("Configuration file for firewall exceptions")
                         .required(false)
-                        .short("e")
-                        .long("exception-file")
+                        .short("c")
+                        .long("config")
+                        .value_name("FILE")
                 ),
         )
         .subcommand(
