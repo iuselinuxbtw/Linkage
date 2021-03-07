@@ -36,17 +36,41 @@ make
 sudo make install
 ```
 
-
 ## Usage
+
 ```shell
-sudo linkage connect -c [config.ovpn]
+sudo linkage connect -f [config.ovpn]
 ```
 
-To avoid the hassle of googling with your phone how to reset iptables, we recommend to also download the 
+To avoid the hassle of googling with your phone how to reset iptables, we recommend to also download the
 reset_iptables.sh script, which will reset the iptables configuration to the default settings when executed.
 
+## Configuration
+
+:exclamation: Be careful with the IP addresses you add here, if you add your router for example you may create a DNS
+leak.
+
+The default configuration file is in: `.config/linkage/config`
+
+And an example for a configuration file would be:
+
+```shell
+[[firewall.exception]]
+host = "192.168.1.112"
+port = 31
+protocol = "TCP"
+
+[[firewall.exception]]
+host = "2607:f0d0:1002:51::4"
+port = 187
+protocol = "UDP"
+```
+
+But you can also parse another configuration file by using
+`linkage connect -f [ovpn-file] -c [path_to_config_file]`
 
 ## TODO
+
 - Add custom exceptions to the firewall.
 - Add more providers for IP- and DNSLeak testing
 - Add more firewalls
