@@ -1,15 +1,16 @@
 //! Contains the utilities for detecting the DNS servers in use.
 
-use crate::error::LeakResult;
-use crate::LeakError;
-use lazy_static::lazy_static;
-use random_string::{Charset, GenerationResult, RandomString};
 use std::net::IpAddr;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
+use lazy_static::lazy_static;
+use random_string::{Charset, GenerationResult, RandomString};
+
+use crate::error::LeakResult;
+use crate::LeakError;
+
 /// The site used for DNS leak checking. Contains a formatting parameter for a prefix.
-#[allow(unused)]
 const LEAK_DETECT_DNS_SITE: &str = "https://{}.ipleak.net/dnsdetect/";
 /// A set of chars that can be used for generating prefixes for the DNS leak check.
 const LEAK_DETECT_DNS_PREFIX_CHARSET: &str = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -107,9 +108,7 @@ pub fn dns_test(amount_of_requests: u32) -> LeakResult<Vec<IpAddr>> {
 
 /// Gets the DNS server from the site used for DNS leak detection.
 fn get_dns() -> LeakResult<String> {
-    let prefix = generate_dns_leak_prefix();
-    // TODO: Use constant and remove allow(unused) from it
-    let request_url = format!("https://{}.ipleak.net/dnsdetect/", prefix);
+    let request_url = str::replace(LEAK_DETECT_DNS_SITE, "{}", &*generate_dns_leak_prefix());
 
     let resp = reqwest::blocking::get(&request_url)?;
     let body = resp.text()?;
@@ -141,6 +140,14 @@ mod tests {
                 .chars()
                 .all(|x| x.is_ascii_digit() || x.is_ascii_lowercase()));
         }
+    }
+
+    #[test]
+    fn test_get_dns() {
+        let result = get_dns();
+        let body: String = result.unwrap();
+        let ip: IpAddr = body.parse().unwrap();
+        println!("{}", ip);
     }
 
     #[test]
