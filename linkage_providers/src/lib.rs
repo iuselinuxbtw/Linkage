@@ -2,3 +2,9 @@
 //! specific configurations that the Linkage application can use to connect to VPN servers.
 //! Additionally, this library contains support for authentication for these providers. Every
 //! has to be implemented on its own using the provided toolkit.
+
+pub mod authentication;
+mod error;
+mod provider;
+
+pub use error::ProviderError;

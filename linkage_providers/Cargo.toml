@@ -9,3 +9,6 @@ repository = "https://github.com/BitJerkers/Linkage"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+thiserror = "1.0.24"
+serde = { version = "1.0.123", features = ["derive"] }
+serde_json = "1.0.63"
