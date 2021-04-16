@@ -108,6 +108,7 @@ pub fn dns_test(amount_of_requests: u32) -> LeakResult<Vec<IpAddr>> {
 
 /// Gets the DNS server from the site used for DNS leak detection.
 fn get_dns() -> LeakResult<String> {
+    // Replaces {} in the string for the dns site for a random string. Necessary for some websites.
     let request_url = str::replace(LEAK_DETECT_DNS_SITE, "{}", &*generate_dns_leak_prefix());
 
     let resp = reqwest::blocking::get(&request_url)?;

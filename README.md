@@ -67,6 +67,7 @@ protocol = "UDP"
 ```
 
 But you can also parse another configuration file by using
+
 `linkage connect -f [ovpn-file] -c [path_to_config_file]`
 
 ## TODO

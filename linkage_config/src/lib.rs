@@ -1,23 +1,26 @@
 //! Contains the configuration part of Linkage.
 
-mod error;
-pub mod utils;
-
-use crate::error::{ConfigError, ConfigResult};
-use crate::utils::get_config_dir;
-use linkage_firewall::FirewallException;
-use serde::{Deserialize, Serialize};
 use std::fs::create_dir;
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
+use linkage_firewall::FirewallException;
+
+use crate::error::{ConfigError, ConfigResult};
+use crate::utils::get_config_dir;
+
+mod error;
+pub mod utils;
+
 /// Contains the configuration of the firewall.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct FirewallConfig {
     pub exception: Vec<FirewallException>,
 }
 
 /// The general application configuration. Holds all configuration values.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Config {
     pub firewall: FirewallConfig,
 }
@@ -58,12 +61,17 @@ pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::get_config_dir;
-    use crate::{open_config, save_config, Config, FirewallConfig};
-    use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
     use std::fs;
     use std::io::Write;
+
     use toml::Value;
+
+    use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
+
+    use crate::utils::get_config_dir;
+    use crate::{open_config, save_config, Config, FirewallConfig};
+
+    use super::*;
 
     #[test]
     fn toml_parsing() {
@@ -96,8 +104,8 @@ mod tests {
         let config: Config = Config {
             firewall: firewall_conf,
         };
-        save_config(&config, "tsconfig").unwrap();
-        let filepath = get_config_dir();
+        save_config(&config, "test-config").unwrap();
+        let filepath = get_config_dir().join("test-config");
         let contents = fs::read_to_string(&filepath).unwrap();
         // This string formatting could be nicer but for now it works fine.
         let expected = r#"[[firewall.exception]]
@@ -111,14 +119,14 @@ port = 187
 protocol = "UDP"
 "#;
         assert_eq!(contents, expected);
-        fs::remove_file(filepath).unwrap();
+        fs::remove_file(&filepath).unwrap();
     }
 
     /// Creates a tsconfig file and saves two exceptions to a file and then compares them to the
     /// expected result.
     #[test]
     fn test_open_config() {
-        let filepath = get_config_dir();
+        let filepath = get_config_dir().join("test-config");
         let exception1 = FirewallException::new(
             "192.168.1.112".parse().unwrap(),
             31,
@@ -135,23 +143,13 @@ protocol = "UDP"
         let firewall_conf: FirewallConfig = FirewallConfig {
             exception: exceptions,
         };
-        let expected: Config = Config {
+        let config = Config {
             firewall: firewall_conf,
         };
-        let to_write = r#"[[firewall.exception]]
-host = "192.168.1.112"
-port = 31
-protocol = "TCP"
 
-[[firewall.exception]]
-host = "2607:f0d0:1002:51::4"
-port = 187
-protocol = "UDP"
-"#;
-        let mut file = std::fs::File::create(&filepath).unwrap();
-        file.write_all(to_write.as_ref()).unwrap();
-        let result = open_config(filepath.clone()).unwrap();
-        assert_eq!(result.firewall.exception, expected.firewall.exception);
-        fs::remove_file(filepath).unwrap();
+        create_config_dir(&get_config_dir());
+        save_config(&config, "test-config");
+        assert_eq!(config, open_config(filepath.clone()).unwrap());
+        fs::remove_file(&filepath).unwrap();
     }
 }
