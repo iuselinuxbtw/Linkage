@@ -58,7 +58,7 @@ impl epi::App for LinkageGUI {
                 ui.separator();
                 if ui.button("Connect").clicked() {
                     // TODO: Use the user-given values
-                    cmd_connect(&Default::default());
+                    cmd_connect(ArgMatches);
                 }
             });
         });
