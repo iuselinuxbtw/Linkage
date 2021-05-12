@@ -1,9 +1,10 @@
-mod cmd;
-pub(crate) mod consts;
-pub mod error;
+use clap::{App as ClapApp, Arg as ClapArg, ArgMatches as ClapArgMatches};
 
 use crate::error::{CliError, CliResult};
-use clap::{App as ClapApp, Arg as ClapArg, ArgMatches as ClapArgMatches};
+
+pub mod cmd;
+pub(crate) mod consts;
+pub mod error;
 
 /// The entry point of the cli application.
 pub fn entry() -> CliResult<()> {

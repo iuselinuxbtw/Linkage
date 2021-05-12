@@ -4,4 +4,5 @@ members = [
     'linkage_cli',
     'linkage_leaks',
     'linkage_config',
+    'linkage_gui'
 ]
