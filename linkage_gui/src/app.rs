@@ -40,13 +40,31 @@ impl epi::App for LinkageGUI {
 
         egui::CentralPanel::default().show(ctx, |inner| {
             inner.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.heading("Select an OpenVPN file...");
+                ui.heading(label);
                 ui.separator();
+                // Get the file string if we have a given file
+                let file_string: Option<String> = if !file.is_file() {
+                    None
+                } else {
+                    // We can safely unwrap here since we checked if it is none
+                    Some(file.to_str().unwrap().parse().unwrap())
+                };
                 // A button for selecting an OpenVPN file. Opens a file_dialog to choose the file
-                if ui.button("Choose an OpenVPN file...").clicked() {
+                if ui
+                    .button(
+                        // If we don't have a file, the user should choose a new file.
+                        if file_string.is_none() {
+                            "Choose OpenVPN file".to_string()
+                        } else {
+                            // We can safely unwrap here since we checked if it is none
+                            format!("Selected: {}", file_string.unwrap())
+                        },
+                    )
+                    .clicked()
+                {
                     let file_dialog = FileDialog::new()
                         .set_location("~")
-                        .add_filter("OpenVPN file", &[".ovpn", ".conf"])
+                        .add_filter("OpenVPN file(.ovpn, .conf)", &["ovpn", "conf"])
                         .show_open_single_file()
                         .unwrap();
                     if let Some(ovpnfile) = file_dialog {
