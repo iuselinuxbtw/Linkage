@@ -1,5 +1,6 @@
 use clap::{App as ClapApp, Arg as ClapArg, ArgMatches as ClapArgMatches};
 
+use crate::cmd::connect::Configuration;
 use crate::error::{CliError, CliResult};
 
 pub mod cmd;
@@ -11,7 +12,7 @@ pub fn entry() -> CliResult<()> {
     let matches = get_config_matches();
 
     if let Some(matches) = matches.subcommand_matches("connect") {
-        cmd::connect::cmd_connect(matches)?;
+        cmd::connect::cmd_connect(Configuration::from(matches.clone()))?;
         Ok(())
     } else if let Some(matches) = matches.subcommand_matches("ipinfo") {
         cmd::ipinfo::cmd_ipinfo(matches)?;

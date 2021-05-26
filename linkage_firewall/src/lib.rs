@@ -1,22 +1,22 @@
 //! Responsible for handling everything related to the firewall. This e.g. includes its leak-safe
 //! setup and exceptions so the VPN client can connect to the VPN server.
 
+use lazy_static::lazy_static;
+
 pub use error::FirewallError;
+use executor::iptables::{IptablesBaseCommand, IptablesCommandExecutor};
 pub use firewalls::{
     FirewallBackend, FirewallException, FirewallExceptionProtocol, FirewallExceptionProtocolError,
 };
 
 mod error;
 mod executor;
-pub(crate) mod firewalls;
+pub mod firewalls;
 #[macro_use]
 mod utils;
 #[cfg(test)]
 #[macro_use]
 mod test_utils;
-
-use executor::iptables::{IptablesBaseCommand, IptablesCommandExecutor};
-use lazy_static::lazy_static;
 
 /// A list that contains firewall backends.
 type FirewallBackendList = Vec<Box<dyn firewalls::FirewallBackend + Sync>>;

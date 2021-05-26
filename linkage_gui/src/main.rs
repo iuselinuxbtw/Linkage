@@ -1,4 +1,5 @@
 mod app;
+mod exception_gui;
 
 fn main() {
     let app = app::LinkageGUI::default();

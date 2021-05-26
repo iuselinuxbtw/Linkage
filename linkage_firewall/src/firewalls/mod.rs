@@ -1,20 +1,36 @@
 //! Definition and implementation of different firewall backends.
 
-pub mod iptables;
+use std::error;
+use std::fmt;
+use std::fmt::Formatter;
+use std::net::IpAddr;
+use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
 
 use crate::error::FirewallResult;
 use crate::executor::Executor;
-use serde::{Deserialize, Serialize};
-use std::error;
-use std::fmt;
-use std::net::IpAddr;
-use std::str::FromStr;
+
+pub mod iptables;
 
 /// A protocol for firewall exceptions.
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum FirewallExceptionProtocol {
     TCP,
     UDP,
+}
+
+impl fmt::Display for FirewallExceptionProtocol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                FirewallExceptionProtocol::TCP => "TCP",
+                FirewallExceptionProtocol::UDP => "UDP",
+            }
+        )
+    }
 }
 
 /// Occurs when the supplied protocol cannot be parsed using FromStr in FirewallExceptionProtocol.
@@ -50,9 +66,10 @@ impl FromStr for FirewallExceptionProtocol {
 /// When activating a firewall, the connections to these exceptions will be allowed.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct FirewallException {
-    host: IpAddr,
-    port: u16, // log2(65536)=16
-    protocol: FirewallExceptionProtocol,
+    pub host: IpAddr,
+    pub port: u16,
+    // log2(65536)=16
+    pub protocol: FirewallExceptionProtocol,
 }
 
 impl FirewallException {
@@ -63,6 +80,16 @@ impl FirewallException {
             port,
             protocol,
         };
+    }
+
+    pub fn get_host(&self) -> IpAddr {
+        self.host
+    }
+    pub fn get_port(&self) -> u16 {
+        self.port.clone()
+    }
+    pub fn get_protocol(&self) -> FirewallExceptionProtocol {
+        self.protocol
     }
 }
 
@@ -115,8 +142,9 @@ pub trait FirewallBackend {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::net::Ipv4Addr;
+
+    use super::*;
 
     #[test]
     fn test_firewall_identifier_partialeq_pointer_str() {

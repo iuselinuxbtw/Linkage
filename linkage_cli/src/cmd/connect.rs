@@ -1,19 +1,5 @@
 //! Contains the `connect` subcommand.
 
-use crate::error::{CliError, CliResult};
-use clap::ArgMatches;
-#[cfg(windows)]
-use is_elevated::is_elevated;
-#[cfg(unix)]
-use libc;
-use linkage_config::utils::get_home_dir;
-use linkage_config::{open_config, Config};
-use linkage_firewall::get_backends;
-use linkage_firewall::FirewallBackend;
-use linkage_firewall::FirewallException;
-use linkage_leaks::{dns_test, get_ip_information};
-use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
-use regex::Regex;
 use std::fs::File;
 use std::io::Read;
 use std::net::IpAddr;
@@ -22,34 +8,63 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
+use clap::ArgMatches;
+#[cfg(windows)]
+use is_elevated::is_elevated;
+#[cfg(unix)]
+use libc;
+use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
+use regex::Regex;
+
+use linkage_config::utils::{get_config_dir, get_home_dir};
+use linkage_config::{open_config, Config};
+use linkage_firewall::get_backends;
+use linkage_firewall::FirewallBackend;
+use linkage_firewall::FirewallException;
+use linkage_leaks::{dns_test, get_ip_information};
+
+use crate::error::{CliError, CliResult};
+
+/// This struct is for using cmd_connect with other interfaces such as linkage_gui
+#[derive(PartialEq, Debug, Clone)]
+pub struct Configuration {
+    pub dns_requests: u32,
+    pub file: PathBuf,
+    pub config: PathBuf,
+}
+
+impl<'a> From<ArgMatches<'a>> for Configuration {
+    fn from(args: ArgMatches) -> Configuration {
+        Configuration {
+            dns_requests: args.value_of("dns-requests").unwrap().parse().unwrap(),
+            file: args.value_of("file").unwrap().parse().unwrap(),
+            config: args
+                .value_of("config")
+                .unwrap_or(get_config_dir().join("config").to_str().unwrap())
+                .parse()
+                .unwrap(),
+        }
+    }
+}
+
+pub fn cmd_connect(matches: Configuration) -> CliResult<()> {
     // Administrator privileges are required
     root_check()?;
 
     // Get the Ip Addresses and DNS Servers before the VPN connection
     let ip_address_before = get_ip_information()?;
-    let dns_addresses_before =
-        dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
+    let dns_addresses_before = dns_test(matches.dns_requests)?;
 
     // This should not be None
-    let config_file_path = matches.value_of("file").unwrap();
-    println!("Using configuration file {}", config_file_path);
-    let config_file = File::open(config_file_path)?;
+    let config_file_path = matches.file;
+    println!("Using configuration file {:?}", config_file_path);
+    let config_file = File::open(config_file_path.clone())?;
 
     // Get the exceptions from the configuration file
     let mut exceptions = parse_configuration_file(config_file)?;
 
     // Add the exceptions from the exception-file
-    let exception_config_path: PathBuf = matches
-        .value_of("config")
-        .unwrap_or(
-            get_home_dir()
-                .join(".config/linkage/config")
-                .to_str()
-                .unwrap(),
-        )
-        .parse()
-        .unwrap();
+    let exception_config_path: PathBuf = matches.config;
     if exception_config_path.exists() {
         let mut additional_exception: Config = open_config(exception_config_path).unwrap();
         exceptions.append(&mut additional_exception.firewall.exception);
@@ -93,7 +108,7 @@ pub fn cmd_connect(matches: &ArgMatches) -> CliResult<()> {
 
     // Get the ip addresses after the connection is established.
     let ip_address_after = get_ip_information()?;
-    let dns_addresses_after = dns_test(matches.value_of("dns-requests").unwrap().parse().unwrap())?;
+    let dns_addresses_after = dns_test(matches.dns_requests)?;
     let matching_dns_addresses: Vec<&IpAddr> = dns_addresses_after
         .iter()
         .filter(|&e| dns_addresses_before.contains(e))
