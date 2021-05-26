@@ -40,7 +40,7 @@ impl epi::App for LinkageGUI {
 
         egui::CentralPanel::default().show(ctx, |inner| {
             inner.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.heading(label);
+                ui.heading("Linkage GUI");
                 ui.separator();
                 // Get the file string if we have a given file
                 let file_string: Option<String> = if !file.is_file() {
