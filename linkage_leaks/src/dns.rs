@@ -51,11 +51,11 @@ fn get_dns_leak_test_config(mut amount_of_requests: u32) -> DnsTestConfig {
     }
     let amount_of_threads: u32 = amount_of_requests / requests_per_thread;
 
-    return DnsTestConfig {
+    DnsTestConfig {
         total: amount_of_requests,
         requests_per_thread,
         amount_of_threads,
-    };
+    }
 }
 
 /// Returns a list of all detected DNS servers. The supplied argument amount_of_requests determines
@@ -69,7 +69,7 @@ pub fn dns_test(amount_of_requests: u32) -> LeakResult<Vec<IpAddr>> {
 
     for _ in 0..config.amount_of_threads {
         let thread_tx = tx.clone();
-        let per_thread = config.requests_per_thread.clone();
+        let per_thread = config.requests_per_thread;
 
         // Spawn the threads and save their handles into a Vec
         let child = thread::spawn(move || {

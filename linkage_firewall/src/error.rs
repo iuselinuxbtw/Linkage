@@ -1,5 +1,5 @@
 use std::io::Error as IoError;
-use thiserror;
+
 use which::Error as WhichError;
 
 /// An error that occurred while doing firewall-related stuff.

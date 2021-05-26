@@ -1,6 +1,8 @@
-use crate::error::ConfigError::PathError;
-use home::home_dir;
 use std::path;
+
+use home::home_dir;
+
+use crate::error::ConfigError::PathError;
 
 /// Gets the home directory under Linux as well as Windows.
 /// # Panics
@@ -9,7 +11,7 @@ use std::path;
 pub fn get_home_dir() -> path::PathBuf {
     match home_dir() {
         Some(path) => path,
-        None => panic!(PathError),
+        None => panic!("{}", PathError),
     }
 }
 

@@ -12,11 +12,10 @@ use clap::ArgMatches;
 #[cfg(windows)]
 use is_elevated::is_elevated;
 #[cfg(unix)]
-use libc;
 use ovpnfile::{self, ConfigDirective as OvpnConfigDirective};
 use regex::Regex;
 
-use linkage_config::utils::{get_config_dir, get_home_dir};
+use linkage_config::utils::get_config_dir;
 use linkage_config::{open_config, Config};
 use linkage_firewall::get_backends;
 use linkage_firewall::FirewallBackend;
@@ -92,7 +91,7 @@ pub fn cmd_connect(matches: Configuration) -> CliResult<()> {
     // TODO: Error handling
     // This loop should probably be limited to about 30 seconds
     let interface_name = loop {
-        stdout.read(&mut buffer)?;
+        stdout.read_exact(&mut buffer)?;
         let i = String::from_utf8_lossy(&buffer);
         let matches = regex.captures(&i);
         if let Some(matches) = matches {
@@ -113,7 +112,7 @@ pub fn cmd_connect(matches: Configuration) -> CliResult<()> {
         .iter()
         .filter(|&e| dns_addresses_before.contains(e))
         .collect();
-    if matching_dns_addresses.len() > 0 {
+    if !matching_dns_addresses.is_empty() {
         println!("Detected DNS-Leak, disconnecting...");
         return disconnect(firewall_backend, Some(process_id));
     }
@@ -190,19 +189,16 @@ fn parse_configuration_file(f: File) -> CliResult<Vec<FirewallException>> {
     // Get the default settings
     let mut default_protocol: Option<String> = None;
     for d in parsed_file.directives() {
-        match d {
-            OvpnConfigDirective::Proto { p } => {
-                default_protocol = Some(p);
-            }
-            _ => (),
+        if let OvpnConfigDirective::Proto { p } = d {
+            default_protocol = Some(p)
         }
     }
 
     // Create the firewall exceptions
     let mut exceptions: Vec<FirewallException> = Vec::new();
     for d in parsed_file.directives() {
-        match d {
-            OvpnConfigDirective::Remote { host, port, proto } => {
+        if let OvpnConfigDirective::Remote { host, port, proto } = d {
+            {
                 // TODO: Handle the unwrap() calls here
                 let default_protocol_clone = default_protocol.clone();
                 exceptions.push(FirewallException::new(
@@ -213,7 +209,6 @@ fn parse_configuration_file(f: File) -> CliResult<Vec<FirewallException>> {
                         .parse()?,
                 ));
             }
-            _ => (),
         }
     }
 

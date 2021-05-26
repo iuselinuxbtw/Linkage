@@ -1,13 +1,15 @@
 //! Implementation of the iptables firewall backend
 
-use super::{FirewallBackend, FirewallException};
+use std::net::IpAddr;
+
 use crate::error::FirewallResult;
 use crate::executor::iptables::{IP6TABLES_BINARY_NAME, IPTABLES_BINARY_NAME};
 use crate::executor::Executor;
 use crate::firewalls::{FirewallExceptionProtocol, FirewallExecutors, FirewallIdentifier};
 use crate::utils::{does_binary_exist, is_linux};
 use crate::{executor_execute_for, to_string_vec};
-use std::net::IpAddr;
+
+use super::{FirewallBackend, FirewallException};
 
 /// Identifies the iptables backend uniquely.
 const IPTABLES_BACKEND_IDENTIFIER: &str = "iptables";
@@ -26,10 +28,10 @@ const OUT_ACCEPT_CHAIN_NAME: &str = "out_accept";
 impl<'a, T: Executor, U: Executor> IpTablesFirewall<'a, T, U> {
     /// Returns a new instance of IpTablesInstance with the supplied executors.
     pub fn new(executor_v4: &'a T, executor_v6: &'a U) -> IpTablesFirewall<'a, T, U> {
-        return IpTablesFirewall {
+        IpTablesFirewall {
             executor_v4,
             executor_v6,
-        };
+        }
     }
 }
 
@@ -45,9 +47,9 @@ impl<'a, T: Executor, U: Executor> FirewallExecutors<T, U> for IpTablesFirewall<
 
 impl<'a, T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<'a, T, U> {
     fn get_identifier(&self) -> FirewallIdentifier {
-        return FirewallIdentifier {
+        FirewallIdentifier {
             identifier: IPTABLES_BACKEND_IDENTIFIER,
-        };
+        }
     }
 
     /// The IpTablesFirewall backend is available if the operating system is Linux and an executable
@@ -290,10 +292,12 @@ impl<'a, T: Executor, U: Executor> FirewallBackend for IpTablesFirewall<'a, T, U
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use mockall::predicate::*;
+
     use crate::executor::MockExecutor;
     use crate::expect_execute;
-    use mockall::predicate::*;
+
+    use super::*;
 
     #[test]
     fn test_get_identifier() {

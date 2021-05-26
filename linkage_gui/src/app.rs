@@ -1,10 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use clap::ArgMatches;
 use eframe::egui::CtxRef;
 use eframe::epi::Frame;
 use eframe::{egui, epi};
-use native_dialog::{FileDialog, MessageDialog, MessageType};
+use native_dialog::FileDialog;
 
 use linkage_cli;
 use linkage_cli::cmd::connect::{cmd_connect, Configuration};
@@ -40,8 +39,6 @@ impl epi::App for LinkageGUI {
 
         egui::CentralPanel::default().show(ctx, |inner| {
             inner.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.heading("Linkage GUI");
-                ui.separator();
                 // Get the file string if we have a given file
                 let file_string: Option<String> = if !file.is_file() {
                     None
@@ -99,18 +96,5 @@ impl epi::App for LinkageGUI {
 
     fn name(&self) -> &str {
         "Linkage GUI"
-    }
-}
-
-fn doc_link_label<'a>(title: &'a str, search_term: &'a str) -> impl egui::Widget + 'a {
-    let label = format!("{}:", title);
-    let url = format!("https://docs.rs/egui?search={}", search_term);
-    move |ui: &mut egui::Ui| {
-        ui.hyperlink_to(label, url).on_hover_ui(|ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label("Search egui docs for");
-                ui.code(search_term);
-            });
-        })
     }
 }

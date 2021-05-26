@@ -75,18 +75,18 @@ pub struct FirewallException {
 impl FirewallException {
     /// Returns a new configured instance of FirewallException.
     pub fn new(host: IpAddr, port: u16, protocol: FirewallExceptionProtocol) -> FirewallException {
-        return FirewallException {
+        FirewallException {
             host,
             port,
             protocol,
-        };
+        }
     }
 
     pub fn get_host(&self) -> IpAddr {
         self.host
     }
     pub fn get_port(&self) -> u16 {
-        self.port.clone()
+        self.port
     }
     pub fn get_protocol(&self) -> FirewallExceptionProtocol {
         self.protocol
@@ -110,7 +110,7 @@ impl PartialEq<&str> for FirewallIdentifier {
 impl PartialEq<FirewallIdentifier> for &str {
     /// Returns whether the string is equal to the identifier of a firewall backend.
     fn eq(&self, other: &FirewallIdentifier) -> bool {
-        return *other == *self;
+        *other == *self
     }
 }
 

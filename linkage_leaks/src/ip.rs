@@ -1,9 +1,9 @@
 //! Contains utilities to get information about an ip address.
 
+use serde::Deserialize;
+
 use crate::error::LeakResult;
 use crate::get_body;
-use serde::Deserialize;
-use serde_json;
 
 /// The site used for IPv4 leak checking.
 const LEAK_DETECT_IPV4_SITE: &str = "https://ipv4.ipleak.net/json/";

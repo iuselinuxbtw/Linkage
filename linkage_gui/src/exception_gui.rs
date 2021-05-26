@@ -1,9 +1,6 @@
 use std::borrow::BorrowMut;
-use std::net::IpAddr;
-use std::str::FromStr;
 
-use eframe::egui::output::WidgetType::CollapsingHeader;
-use eframe::egui::CtxRef;
+use eframe::egui::{Align, CtxRef};
 use eframe::epi::Frame;
 use eframe::{egui, epi};
 
@@ -74,12 +71,14 @@ impl epi::App for Exceptions {
                 });
             }
             // Button Section
-            ui.horizontal(|ui| {
-                // Save the changes
-                if ui.button("Save").clicked() {}
-                // Add a new Exception
-                if ui.button("Add").clicked() {}
-                // Revert Changes and close the window
+            ui.with_layout(egui::Layout::bottom_up(Align::Center), |ui| {
+                ui.horizontal(|ui| {
+                    // Save the changes
+                    if ui.button("Save").clicked() {}
+                    // Add a new Exception
+                    if ui.button("Add").clicked() {}
+                    // Revert Changes and close the window
+                });
             });
         });
     }

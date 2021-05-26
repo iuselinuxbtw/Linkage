@@ -1,8 +1,10 @@
 //! Contains the `ipinfo` subcommand.
 
-use crate::error::CliResult;
 use clap::ArgMatches;
+
 use linkage_leaks::{dns_test, get_ip_information, IpInformation};
+
+use crate::error::CliResult;
 
 pub fn cmd_ipinfo(matches: &ArgMatches) -> CliResult<()> {
     // Output ip information if wanted
@@ -30,7 +32,7 @@ pub fn cmd_ipinfo(matches: &ArgMatches) -> CliResult<()> {
 
         println!();
         println!("----- DNS servers -----");
-        if dns_servers.len() > 0 {
+        if !dns_servers.is_empty() {
             for d in dns_servers {
                 println!("- {}", d);
             }

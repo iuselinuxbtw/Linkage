@@ -1,14 +1,17 @@
 //! Contains the configuration part of Linkage.
 
-mod error;
-pub mod utils;
+use std::fs::create_dir;
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+
+use linkage_firewall::FirewallException;
 
 use crate::error::{ConfigError, ConfigResult};
 use crate::utils::get_config_dir;
-use linkage_firewall::FirewallException;
-use serde::{Deserialize, Serialize};
-use std::fs::create_dir;
-use std::path::PathBuf;
+
+mod error;
+pub mod utils;
 
 /// Contains the configuration of the firewall.
 #[derive(Serialize, Deserialize, Debug)]
@@ -38,7 +41,7 @@ pub fn save_config<T: Serialize>(data: &T, name: &str) -> Result<(), ConfigError
 }
 
 /// Creates a directory if it doesn't exist yet. Return true if it was created, false if it existed.
-pub fn create_config_dir(path: &PathBuf) -> Result<bool, ConfigError> {
+pub fn create_config_dir(path: &Path) -> Result<bool, ConfigError> {
     // Checks if the directory already exists
     if path.exists() {
         return Ok(false);
@@ -58,12 +61,15 @@ pub fn open_config(path: PathBuf) -> ConfigResult<Config> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::get_config_dir;
-    use crate::{open_config, save_config, Config, FirewallConfig};
-    use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
     use std::fs;
     use std::io::Write;
+
     use toml::Value;
+
+    use linkage_firewall::{FirewallException, FirewallExceptionProtocol};
+
+    use crate::utils::get_config_dir;
+    use crate::{open_config, save_config, Config, FirewallConfig};
 
     #[test]
     fn toml_parsing() {

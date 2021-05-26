@@ -29,16 +29,14 @@ lazy_static! {
 
     /// A list of all implemented firewall backends.
     static ref ALL_BACKENDS: FirewallBackendList = {
-        let mut v: FirewallBackendList = Vec::new();
-        v.push(
+        let mut v: FirewallBackendList = vec![
             Box::new(
                 firewalls::iptables::IpTablesFirewall::new(
                     // Deref is necessary so that we get a value that implements the Executor trait
                     &*IPTABLES_COMMAND_EXECUTOR,
                     &*IP6TABLES_COMMAND_EXECUTOR,
                 )
-            )
-        );
+        )];
         v
     };
 }
