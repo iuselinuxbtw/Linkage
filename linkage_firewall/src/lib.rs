@@ -29,7 +29,7 @@ lazy_static! {
 
     /// A list of all implemented firewall backends.
     static ref ALL_BACKENDS: FirewallBackendList = {
-        let mut v: FirewallBackendList = vec![
+        let v: FirewallBackendList = vec![
             Box::new(
                 firewalls::iptables::IpTablesFirewall::new(
                     // Deref is necessary so that we get a value that implements the Executor trait

@@ -5,7 +5,6 @@ use eframe::epi::Frame;
 use eframe::{egui, epi};
 use native_dialog::FileDialog;
 
-use linkage_cli;
 use linkage_cli::cmd::connect::{cmd_connect, Configuration};
 
 use crate::exception_gui;

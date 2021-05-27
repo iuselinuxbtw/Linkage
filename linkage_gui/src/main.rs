@@ -1,4 +1,5 @@
 mod app;
+mod error;
 mod exception_gui;
 
 fn main() {
